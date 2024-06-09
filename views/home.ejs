@@ -4,20 +4,12 @@
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-  <h3>TopProz and QuickBooks Integration</h3>
-
-  <!-- Sign In With Intuit Button 
+  <% include ./master.ejs %>
+<div style="text-align: center;">
   <b>Sign In With Intuit</b><br />
-  <a class="imgLink" href="#" onclick="launchPopup('/sign_in_with_intuit')">
-    <img
-      style="height: 40px"
-      src="IntuitSignIn-lg-white@2x.jpg"
-    />
-  </a>
-  <br /><br /><br />-->
 
   <!-- Connect To QuickBooks Button -->
-  <b>Connect To QuickBooks</b><br />
+  
   <a class="imgLink" href="#" onclick="launchPopup('/connect_to_quickbooks')">
     <img
       style="height: 40px"
@@ -26,6 +18,7 @@
       onmouseout="this.src='C2QB_white_btn_lg_default.png'"
     />
   </a>
+</div>
   <br /><br /><br />
 
   <!-- Get App Now 

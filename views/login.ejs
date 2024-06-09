@@ -1,0 +1,48 @@
+<html>
+<head>
+    <title>TopProz-QuickBooks</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+</head>
+<body>
+    <% include ./master.ejs %>
+    <div style="text-align: center;">
+        <input placeholder="Enter Login ID" type="text" id="txtLoginID"><br/>
+        <div id="error-message" style="color: red; display: none;">Login ID cannot be empty</div><br/>
+        <button class="btn" id="btnProceed" onclick="myapilCal()">Proceed <i class="fa fa-arrow-right"></i></button> 
+        <br/><code id="result"></code>   
+    </div>
+    <script>
+        
+    function myapilCal() {
+      var loginId = document.getElementById('txtLoginID').value;
+        if (loginId == "") {
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('txtLoginID').focus();
+            return;
+        } else {
+            document.getElementById('error-message').style.display = 'none';
+        } 
+       
+      $.get(`/top_proz_api/getqbdata/${loginId}`, function(data) {
+        //$("#result").html(JSON.stringify(data, null, 2))
+        if (data.quickBookId) {
+            console.log(data.quickBookId);
+            window.location.href = '/home';
+        }
+        else 
+            $("#result").html('No result found...');
+
+      }).fail(function(jqXHR, textStatus, errorThrown) {        
+        if (jqXHR.status === 400 || jqXHR.status === 404) {
+            $("#result").html('No record found');
+        } else {
+            $("#result").html('Error: ' + textStatus + ', ' + errorThrown);
+        }
+            });
+    }
+    </script>
+
+</body>
+</html>

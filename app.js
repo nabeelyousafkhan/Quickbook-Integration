@@ -11,7 +11,7 @@ app.use(session({secret: 'secret', resave: 'false', saveUninitialized: 'false'})
 
 // Initial view - loads Connect To QuickBooks Button
 app.get('/', function (req, res) {
-  res.render('home', config)
+  res.render('login', config)
 })
 
 // Sign In With Intuit, Connect To QuickBooks, or Get App Now
@@ -29,6 +29,8 @@ app.use('/connected', require('./routes/connected.js'))
 // Call an example API over OAuth2
 app.use('/api_call', require('./routes/api_call.js'))
 
+app.use('/home', require('./routes/home.js'));
+app.use('/top_proz_api', require('./routes/top_proz_api.js'));
 
 // Start server on HTTP (will use ngrok for HTTPS forwarding)
 app.listen(3000, function () {
