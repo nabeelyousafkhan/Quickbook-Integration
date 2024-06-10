@@ -1,0 +1,46 @@
+<html>
+<head>
+  <title>TopProz-QuickBooks</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script>
+    if(window.opener) {
+      window.opener.location.href = '/topproz_quickbook_data'
+      window.close()
+    }
+
+    function getCustomer() {
+        var CustomerID = document.getElementById('txtCustomerID').value;
+        if (CustomerID == "") {
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('txtLoginID').focus();
+            return;
+        } else {
+            document.getElementById('error-message').style.display = 'none';
+        } 
+
+      $("#result").html('Loading...')
+      $.get(`/top_proz_api/proCustomerDetails/${CustomerID}`, function(data) {
+        $("#result").html(JSON.stringify(data, null, 2))
+      })
+
+      
+    }
+
+  </script>
+</head>
+<body>
+    <% include ./master.ejs %>
+  <div style="margin-left: 2%;">
+  <h3>Welcome!</h3><br/>
+  <div>
+    <input type="text" id="txtCustomerID" placeholder="Enter Customer ID">
+    <button class="btn" onclick="getCustomer()">Get TopProz Customer</button><br/>
+    <div id="error-message" style="color: red; display: none;">Customer ID cannot be empty</div>
+    <!--<button onclick="refreshCall()">Refresh Token Call</button>
+    <button onclick="revokeCall()">Revoke Token Call</button>-->
+    <br><br>
+    <div><code id="result"></code></div>
+</div>
+</body>
+</html>
