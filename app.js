@@ -31,6 +31,7 @@ app.use('/api_call', require('./routes/api_call.js'))
 
 app.use('/home', require('./routes/home.js'));
 app.use('/top_proz_api', require('./routes/top_proz_api.js').router);
+app.use('/quickbook_api_call', require('./routes/quickbook_api_call.js').router);
 app.use('/topproz_quickbook_data', require('./routes/topproz_quickbook_data.js'));
 
 // Start server on HTTP (will use ngrok for HTTPS forwarding)

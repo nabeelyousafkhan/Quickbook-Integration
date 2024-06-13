@@ -18,7 +18,7 @@ router.get('/', function (req, res) {
     // persisted (in a SQL DB, for example).
     tools.saveToken(req.session, token)
     req.session.realmId = req.query.realmId
-    console.log(req.session.realmId);
+    
     top_proz_api.saveQuickBookKeys(req.session.realmId,token.accessToken,token.refreshToken,req.session.loginId, function (err, result) {
       if (err) {
         console.log('error: ' + err);
