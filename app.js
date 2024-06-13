@@ -1,7 +1,7 @@
 var path = require('path')
 var config = require('./config.json')
 var express = require('express')
-var session = require('express-session')
+var session = require('cookie-session')
 var app = express()
 
 app.set('views', path.join(__dirname, 'views'))
