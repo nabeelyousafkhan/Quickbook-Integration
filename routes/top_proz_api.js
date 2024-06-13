@@ -9,6 +9,35 @@ router.get('/', function (req, res) {
 
 })
 
+router.get('/DisconnectQB', function (req, res) {
+  const loginId = req.session.loginId;
+  const url = `${config.base_url}accountsetting/saveQuickBookKeys`;
+  
+  const options = {
+    url: url,
+    method: 'POST',
+    headers: {
+      'Authorization': config.topproz_token_id,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      'loginId': loginId,
+      'quickBookId': "",
+      'accessToken': "",
+      'refreshToken': ""
+    })
+  };
+  
+  request(options, function (err, response, body) {
+    if (err || response.statusCode != 200) {
+      return res.status(400).json({error: err, response: response});
+    } else {
+      console.log('Disconnect successful');
+      return res.json(JSON.parse(body));
+    }
+  });
+})
+
 router.get('/getQuickBookKeysByLoginId/:loginId', function (req, res) {
 const loginId = req.params.loginId;
 

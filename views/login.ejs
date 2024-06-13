@@ -57,7 +57,11 @@
             window.location.href = '/topproz_quickbook_data';
         }
         else 
+        {
             $("#result").html('No result found...');
+            window.location.href = '/home';
+        }
+            
 
       }).fail(function(jqXHR, textStatus, errorThrown) {        
         if (jqXHR.status > 202 && jqXHR.status <= 404) {
