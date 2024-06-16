@@ -73,8 +73,7 @@ const loginId = req.params.loginId;
       req.session.realmId = quickBookId;
       req.session.accessToken = accessToken;
       req.session.refreshToken = refreshToken;
-      // Process the tokens as needed, or send them in the response
-      
+      // Process the tokens as needed, or send them in the response      
       res.json({
         quickBookId,
         accessToken,
@@ -92,6 +91,8 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
   const loginId = req.session.loginId;  
   const customerId = req.params.customerId;
   req.session.customerId = customerId;
+  var isResponse = false;
+
     request({
       url: `${config.base_url}proCustomer/proCustomerDetails/${loginId}/${customerId}`,
       method: 'GET',
@@ -101,26 +102,29 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
     }, function (err, response, body) {
       if (err) {
         console.error('Request error:', err);
+        isResponse = true;
         addQuickBookLogs(loginId,"Internal server error geting TopProz customer", response.statusCode );
         return res.status(500).json({ error: 'Internal server error', details: err });
       }
   
       if (!response) {
         console.error('No response received');
+        isResponse = true;
         addQuickBookLogs(loginId,"No response received from server while geting TopProz customer ", response.statusCode );
         return res.status(500).json({ error: 'No response received from server' });
       }
   
       if (response.statusCode !== 200) {
-        console.log(response.statusCode + ' no record found ');
+        console.log(response.statusCode + ' Customer not found ');
         req.session.loginId = loginId;
+        isResponse = true;
         addQuickBookLogs(loginId,"No record found while geting TopProz customer", response.statusCode );
-        return res.status(400).json({ error: 'No record found' });
+        return res.status(404).json({ error: 'Customer not found' });
       }
       else{
       try {
         const parsedBody = JSON.parse(body);
-        res.json({parsedBody});
+        //res.json({parsedBody});
         addQuickBookLogs(loginId,"TopProz customer get successfully! ", response.statusCode );
         var customerData = {};
         if(!parsedBody.data.hasOwnProperty("quickBookId"))
@@ -173,23 +177,44 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                   quickbookAPIObj.addCustomerToQuickBooks(customerData, (retryError, retryResult) => {
                     if (retryError) {
                       addQuickBookLogs(loginId,retryError, retryError.statusCode );
-                      return console.log('retryError: ' + retryError);
+                      if(isResponse == false)
+                        return res.json({'retryError: ' : retryError});
                     }
                     //console.log(retryResult.Customer.Id);
                     quickbookAPIObj.updateCustomerQBID(req.session.loginId,req.session.customerId,retryResult.Customer.Id)
                     addQuickBookLogs(loginId,"Quickbook Id updated in TopProz customer", "200" );
+                    const combinedResponse = {
+                      customerDetails: parsedBody,
+                      quickBooksResponse: retryResult
+                    };
+                    res.json(combinedResponse);
                   });
                 })
                 .catch(authError => {
                   addQuickBookLogs(loginId,authError, authError.statusCode );
-                  return console.log(authError);
+                  if(isResponse == false)
+                    {
+                      res.redirect('/home')
+                      //return res.json(authError);
+                    }                    
                 });
             } else if (error) {
-                  addQuickBookLogs(loginId,error, error.statusCode );
-              return console.log(error.statusCode);
+                  console.log('customer is not adding qb');
+                  addQuickBookLogs(loginId,error, 400 );
+                  const combinedResponse = {
+                    customerDetails: parsedBody,
+                    quickBooksResponse: {Customer:{error}}
+                  };
+                  if(isResponse == false)
+                    return res.json(combinedResponse);
             } else {
                 console.log(result.Customer.Id);
                 quickbookAPIObj.updateCustomerQBID(req.session.loginId,req.session.customerId,result.Customer.Id)
+                const combinedResponse = {
+                  customerDetails: parsedBody,
+                  quickBooksResponse: result
+                };
+                res.json(combinedResponse);
                 addQuickBookLogs(loginId,"Quickbook Id updated in TopProz customer", "200" );
             }
           });
@@ -217,12 +242,14 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                 quickbookAPIObj.getQBCustomer(customerData,req.session.realmId, (retryError, retryResult) => {
                   if (retryError) {
                     addQuickBookLogs(loginId,retryError, retryError.statusCode );
-                    return console.log('retryError: ' + retryError);
+                    if(isResponse == false)                      
+                      return res.json({'retryError: ': retryError});
                   }
                   else
                   {
-                    if(err == 400)
+                    if(err == 400 || err == 404)
                     {
+                      console.log("try adding customer");
                       delete customerData['SyncToken'];
                       tryAddingCustomer(customerData);
                     }
@@ -237,17 +264,18 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
               })
               .catch(authError => {
                 addQuickBookLogs(loginId,authError, authError.statusCode );
-                return console.log(authError);
+                  res.redirect('/home')
               });
-          } else if (err) {
+          }else if(err == 400 || err == 404)
+            {
+              console.log("try adding customer");
+              delete customerData['SyncToken'];
+              tryAddingCustomer(customerData);
+            } 
+          else if (err) {
               addQuickBookLogs(loginId,err, err.statusCode );
             return console.log(err);
-          }
-           else if(err == 400)
-                {
-                  delete customerData['SyncToken'];
-                  tryAddingCustomer(customerData);
-                }
+          }           
           } else {
               customerData["SyncToken"] = parsedBody.Customer.SyncToken;
               console.log(parsedBody.Customer.SyncToken);

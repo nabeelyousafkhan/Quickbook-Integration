@@ -18,17 +18,31 @@
         } else {
             document.getElementById('error-message').style.display = 'none';
         } 
-
+        
       $("#result").html('Loading...')
-      $.get(`/top_proz_api/proCustomerDetails/${CustomerID}`, function(data) {
-        $("#result").html(JSON.stringify(data, null, 2))
-      })      
+      $("#qb-result").html('')
+      $.get(`/top_proz_api/proCustomerDetails/${CustomerID}`, function(data) {        
+        $("#result").html(JSON.stringify(data.customerDetails, null, 2))
+        $("#qb-result").html(JSON.stringify(data.quickBooksResponse.Customer, null, 2))
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {       
+        debugger; 
+        if (jqXHR.status === 404) {
+          $("#result").html(JSON.stringify(jqXHR.responseJSON));
+        } else {
+          $("#result").html(`Error: ${errorThrown}`);
+          $("#qb-result").html(errorThrown)
+        }
+      });
     }
 
     function DisconnectQB() {
       $.get(`/top_proz_api/DisconnectQB`, function(data) {
         window.location.href = '/';
-      })      
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {    
+          $("#result").html(`Error: ${errorThrown}`);        
+      });
     }
 
   </script>
@@ -38,7 +52,7 @@
   <div style="margin-left: 2%;">
   <span style="display: block;">
   <h3>Welcome!</h3>
-  <button style="float: right; margin-right: 2%; padding: 8px; color: green; height: 4%;" 
+  <button style="float: right; margin-right: 2%; padding: 8px; color: green; height: 6%;" 
     onclick="DisconnectQB()">Disconnect Quickbook</button>
   <br/>
   </span>
@@ -46,9 +60,17 @@
     <input type="text" id="txtCustomerID" placeholder="Enter Customer ID">
     <button class="btn" onclick="getCustomer()">Get TopProz Customer</button><br/>
     <div id="error-message" style="color: red; display: none;">Customer ID cannot be empty</div>
-    <!-- <button onclick="revokeCall()">Revoke Token Call</button> -->
     <br><br>
-    <div><code id="result"></code></div>
+    <div class="row">
+      <div class="column">
+        <h3>TopPorz Customer</h3>
+        <code id="result"></code>
+      </div>
+      <div class="column">
+        <h3>Quickbook Customer</h3>
+        <code id="qb-result"></code>
+      </div>
+    </div>
 </div>
 </body>
 </html>
