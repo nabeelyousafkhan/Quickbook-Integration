@@ -47,7 +47,7 @@ router.get('/', function (req, res) {
       }
     } else {
       // Redirect to /connected
-      res.redirect('topproz_quickbook_data')
+      res.redirect('/home')
     }
   }, function (err) {
     console.log(err)

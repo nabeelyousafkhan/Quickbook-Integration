@@ -119,7 +119,7 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
         req.session.loginId = loginId;
         isResponse = true;
         addQuickBookLogs(loginId,"No record found while geting TopProz customer", response.statusCode );
-        return res.status(404).json({ error: 'Customer not found' });
+        return res.status(404).json({ error: response.statusCode + ' Customer not found' });
       }
       else{
       try {
