@@ -40,7 +40,26 @@ router.get('/DisconnectQB', function (req, res) {
 
 router.get('/getQuickBookKeysByLoginId/:loginId', function (req, res) {
 const loginId = req.params.loginId;
+  getQuickBookKeysByLoginIdFunc(req,res,loginId, function (err, result) {
+    if (err) {
+      console.error('Error:', err);
+      getTopProzNewToken(req, function (result, err) {
+        if (err) {
+          console.log('error: ' + err);
+          addQuickBookLogs(loginId,err, err.statusCode );
+          return false;
+        } else {
+          console.log('New Token Updated of TopProz');
+          getQuickBookKeysByLoginIdFunc(req,res,loginId,null);
+        }
+      });
+    }
+  });
 
+});
+
+function getQuickBookKeysByLoginIdFunc(req, res, loginId, callback) {
+  // Make API request using topproz_token_id from session
   request({
     url: `${config.base_url}accountsetting/getQuickBookKeysByLoginId/${loginId}`,
     method: 'GET',
@@ -60,20 +79,23 @@ const loginId = req.params.loginId;
 
     if (response.statusCode !== 200) {
       console.log(response.statusCode + ' no record found ');
-      req.session.loginId = loginId;
-      return res.status(400).json({ error: 'No record found' });
+      req.session.loginId = loginId;  
+      return callback(response.statusCode,null);
     }
-    else{
+
     try {
       const parsedBody = JSON.parse(body);
       const quickBookId = parsedBody.data.quickBook.quickBookId;
       const accessToken = parsedBody.data.quickBook.accessToken;
       const refreshToken = parsedBody.data.quickBook.refreshToken;
+      
+      // Store relevant data in session for later use
       req.session.loginId = loginId;
       req.session.realmId = quickBookId;
       req.session.accessToken = accessToken;
       req.session.refreshToken = refreshToken;
-      // Process the tokens as needed, or send them in the response      
+
+      // Send response with tokens or process them as needed
       res.json({
         quickBookId,
         accessToken,
@@ -83,9 +105,8 @@ const loginId = req.params.loginId;
       console.error('Error parsing response:', parseError);
       return res.status(500).json({ error: 'Error parsing response', details: parseError });
     }
-  }
   });
-});
+}
 
 router.get('/proCustomerDetails/:customerId', function (req, res) {
   const loginId = req.session.loginId;  
@@ -235,7 +256,7 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                     console.log('error: ' + err);
                     addQuickBookLogs(loginId,err, err.statusCode );
                   } else {
-                    console.log('New Token Updated in TopProz');
+                    console.log('New Token Updated in TopProz while reading customer');
                     addQuickBookLogs(loginId,"New Access Token Updated in TopProz", result.statusCode );
                   }
                 }); 
@@ -348,6 +369,38 @@ function addQuickBookLogs(loginId,message, status) {
     } else {
       console.log('Logs inserted successful');
       return "Logs inserted successful";
+    }
+  });
+}
+
+function getTopProzNewToken(req,callback) {
+  const url = `${config.base_url}auth/webLogin`;
+
+  const options = {
+    url: url,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      'emailId': "yasser.abdelkader2020@gmail.com",
+      'password': "Test&123",
+      'role': "PRO"
+    })
+  };
+  
+  request(options, function (err, response, body) {
+    if (err || response.statusCode != 200) {
+      {
+        console.log("Token is not Generating: " + response.statusCode);
+        return callback("error: " + err  + " | statusCode: " + response.statusCode);
+      }
+    } else {
+      let parseBody = JSON.parse(response.body);
+      console.log('New Token Generated ' + response.statusCode);
+      config.topproz_token_id = parseBody.data.token;
+      return callback(parseBody.data.token);
     }
   });
 }

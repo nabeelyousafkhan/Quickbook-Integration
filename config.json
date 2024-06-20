@@ -1,7 +1,7 @@
 {
   "clientId": "ABmRy88lxHyJ63QDcIgP62RfydLPYYPP1sXlpywHtqMgkLudhV",
   "clientSecret": "3DMnk5x93MqsX3cwbfY1wk5G8B6kxf4jyGaPNWXi",
-  "redirectUri": "https://quickbook-mu.vercel.app/callback",
+  "redirectUri": "http://localhost:3000/callback",
   "configurationEndpoint": "https://developer.api.intuit.com/.well-known/openid_sandbox_configuration/",
   "api_uri": "https://sandbox-quickbooks.api.intuit.com/v3/company/",
   "base_url": "https://testapi.topproz.com/",
