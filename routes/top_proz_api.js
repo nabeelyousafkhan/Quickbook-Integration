@@ -40,21 +40,23 @@ router.get('/DisconnectQB', function (req, res) {
 
 router.get('/getQuickBookKeysByLoginId/:loginId', function (req, res) {
 const loginId = req.params.loginId;
-  getQuickBookKeysByLoginIdFunc(req,res,loginId, function (err, result) {
-    if (err) {
-      console.error('Error:', err);
-      getTopProzNewToken(req, function (result, err) {
-        if (err) {
-          console.log('error: ' + err);
-          addQuickBookLogs(loginId,err, err.statusCode );
-          return false;
-        } else {
-          console.log('New Token Updated of TopProz');
-          getQuickBookKeysByLoginIdFunc(req,res,loginId,null);
-        }
-      });
-    }
-  });
+
+getQuickBookKeysByLoginIdFunc(req,res,loginId, function (err, result) {
+  if (err) {
+    console.error('Error:', err);
+    getTopProzNewToken(req, function (result, err) {
+      if (err) {
+        console.log('error: ' + err);
+        addQuickBookLogs(loginId,err, err.statusCode );
+        return false;
+      } else {
+        console.log('New Token Updated of TopProz');
+        getQuickBookKeysByLoginIdFunc(req,res,loginId,null);
+      }
+    });
+  }
+    
+});
 
 });
 
@@ -84,6 +86,7 @@ function getQuickBookKeysByLoginIdFunc(req, res, loginId, callback) {
     }
 
     try {
+      
       const parsedBody = JSON.parse(body);
       const quickBookId = parsedBody.data.quickBook.quickBookId;
       const accessToken = parsedBody.data.quickBook.accessToken;
@@ -113,7 +116,7 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
   const customerId = req.params.customerId;
   req.session.customerId = customerId;
   var isResponse = false;
-
+  
     request({
       url: `${config.base_url}proCustomer/proCustomerDetails/${loginId}/${customerId}`,
       method: 'GET',
@@ -260,23 +263,24 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                     addQuickBookLogs(loginId,"New Access Token Updated in TopProz", result.statusCode );
                   }
                 }); 
-                quickbookAPIObj.getQBCustomer(customerData,req.session.realmId, (retryError, retryResult) => {
+                quickbookAPIObj.getQBCustomer(req,customerData,req.session.realmId, (retryError, retryResult) => {
                   if (retryError) {
                     addQuickBookLogs(loginId,retryError, retryError.statusCode );
+                    console.log("retryError: " + retryError.statusCode);
                     if(isResponse == false)                      
                       return res.json({'retryError: ': retryError});
                   }
                   else
                   {
-                    if(err == 400 || err == 404)
+                    if(retryError.statusCode == 400 || retryError.statusCode == 404)
                     {
                       console.log("try adding customer");
                       delete customerData['SyncToken'];
                       tryAddingCustomer(customerData);
                     }
                     else {
-                      customerData["SyncToken"] = parsedBody.Customer.SyncToken;
-                      console.log(parsedBody.Customer.SyncToken);
+                      customerData["SyncToken"] = retryResult.Customer.SyncToken;
+                      console.log(retryResult.Customer.SyncToken);
                       tryAddingCustomer(customerData);
                     }
                   }

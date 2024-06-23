@@ -155,7 +155,7 @@ function addCustomerToQuickBooks(customerData, callback) {
         if (response.statusCode !== 200) {
           console.log(response.statusCode + ' no record found ');
           err = response.statusCode;
-          callback(err, null);
+          return callback(err, null);
         }
         else{
         try {
