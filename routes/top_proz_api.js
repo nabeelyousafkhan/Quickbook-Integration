@@ -272,7 +272,7 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                   }
                   else
                   {
-                    if(retryError.statusCode == 400 || retryError.statusCode == 404)
+                    if(retryError != null && (retryError.statusCode == 400 || retryError.statusCode == 404))
                     {
                       console.log("try adding customer");
                       delete customerData['SyncToken'];
@@ -347,6 +347,62 @@ function saveQuickBookKeys(quickBookId, accessToken, refreshToken, loginId, call
   });
 }
 
+function addTopProzCustomer(resultBody) {
+  const url = `${config.base_url}customer/addcustomer`;
+
+  const options = {
+    url: url,
+    method: 'POST',
+    headers: {
+      'Authorization' : config.topproz_token_id,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+    "quickBookId": resultBody.Id, //Not Required
+    "quickBookFullName": resultBody.FullyQualifiedName, //Not Required
+    "loginId": req.session.loginId, 
+    "customerEmailId": resultBody.PrimaryEmailAddr.Address,
+    "phoneNumber": resultBody.PrimaryPhone.FreeFormNumber,    
+    "customerType": "Residential",
+    "dispatchTextNumber": resultBody.PrimaryPhone.FreeFormNumber,
+    "vendor": "Quick Book",
+    "source": "TV",
+    "paymentMethod": "Cash",
+    "creditLimit": 0,
+    "paymentTerms": "Upon Receipt",
+    "taxExempt": false,
+    "poRequired": false,
+    "doNotServe": false,
+    "doNotServeNotes": "Text",
+    "picturesAndVideos": [],    
+    "firstName": resultBody.DisplayName,
+    "lastName": "none",
+    "userType": "Owner",
+    "address": resultBody.BillAddr.Line1,
+    "invoiceEmail": resultBody.PrimaryEmailAddr.Address,
+    "city": resultBody.BillAddr.City,
+    "state": resultBody.BillAddr.CountrySubDivisionCode,
+    "zipCode": resultBody.BillAddr.PostalCode,
+    "adminNotes": "Good Customer"
+    })
+  };
+  
+  request(options, function (err, response, body) {
+    if (err || response.statusCode != 200) {
+      {
+        console.log("QB Customer is not adding in TopProz: " + response.statusCode);
+        addQuickBookLogs(req.session.loginId,err, response.statusCode );
+      }
+    } else {
+      let parseBody = JSON.parse(response.body);
+      console.log('QB Customer has added successfull in TopProz ' + response.statusCode);
+      addQuickBookLogs(req.session.loginId,'QB Customer has added successfull in TopProz', response.statusCode );
+      
+    }
+  });
+}
+
 function addQuickBookLogs(loginId,message, status) {
   const url = `${config.base_url}quickBookLogs/addQuickBookLogs`;
 
@@ -409,4 +465,4 @@ function getTopProzNewToken(req,callback) {
   });
 }
 
-module.exports = {router, saveQuickBookKeys, addQuickBookLogs};
+module.exports = {router, saveQuickBookKeys, addQuickBookLogs, addTopProzCustomer};
