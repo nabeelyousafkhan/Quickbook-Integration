@@ -24,7 +24,7 @@ router.get('/', function (req, res) {
         console.log('error: ' + err);
         //return res.status(500).json({ error: 'Error saving QuickBook keys', details: err });
       } else {
-        console.log('Added Successfully');
+        console.log('Added Successfully');       
         //return res.json(result);
       }
     });
@@ -35,16 +35,16 @@ router.get('/', function (req, res) {
       res.redirect('/')
     }
 
-    if(token.data.id_token) {
-      try {
-        // We should decode and validate the ID token
-        jwt.validate(token.data.id_token, function() {
+    if(token.accessToken) {
+      //try {
+          // We should decode and validate the ID token
+       // jwt.validate(token.accessToken, function() {
           // Callback function - redirect to /connected
           res.redirect('topproz_quickbook_data')
-        }, errorFn)
-      } catch (e) {
-        errorFn(e)
-      }
+      //   }, errorFn)
+      // } catch (e) {
+      //   errorFn(e)
+      // }
     } else {
       // Redirect to /connected
       res.redirect('/home')

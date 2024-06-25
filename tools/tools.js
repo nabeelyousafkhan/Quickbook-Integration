@@ -58,15 +58,16 @@ var Tools = function () {
     return new Promise(function (resolve, reject) {
       if(response.statusCode == 401) {
         console.log('Received a 401 response!  Trying to refresh tokens.')
-
+        
         // Refresh the tokens
         tools.refreshTokens(req.session).then(function(newToken) {
-          // Try API call again, with new accessToken
+          // Try API call again, with new accessToken          
           requestObj.headers.Authorization = 'Bearer ' + newToken.accessToken
           console.log('Trying again, making API call to: ' + requestObj.url)
           request(requestObj, function (err, response) {
             // Logic (including error checking) should be continued with new
             // err/response objects.
+            response.newToken = newToken;
             resolve({err, response})
           })
         }, function(err) {

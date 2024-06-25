@@ -123,7 +123,7 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
       headers: {
         'Authorization': config.topproz_token_id
       },
-    }, function (err, response, body) {
+    }, async function (err, response, body) {
       if (err) {
         console.error('Request error:', err);
         isResponse = true;
@@ -181,12 +181,13 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
         };
       }
       
-        const tryAddingCustomer = (customerData) => {
+        const  tryAddingCustomer = async (customerData) => {
+          return new Promise((resolve, reject) => {
           quickbookAPIObj.addCustomerToQuickBooks(customerData, (error, result) => {
             if (error && error.statusCode === 401) {
                 response.statusCode = error.statusCode;
                 tools.checkForUnauthorized(req, { headers: { Authorization: `Bearer ${customerData.QBAccessToken}` } }, error, response)
-                .then(() => {
+                .then(({err, response}) => {
                   customerData.QBAccessToken = req.session.accessToken;
                   //Update NewToken in TopProze DB
                   saveQuickBookKeys(req.session.realmId,customerData.QBAccessToken,req.session.refreshToken,req.session.loginId, function (err, result) {
@@ -216,11 +217,10 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                 })
                 .catch(authError => {
                   addQuickBookLogs(loginId,authError, authError.statusCode );
-                  if(isResponse == false)
+                  if (!res.headersSent)
                     {
-                      res.redirect('/home')
-                      //return res.json(authError);
-                    }                    
+                      res.json({authError});
+                    }                 
                 });
             } else if (error) {
                   console.log('customer is not adding qb');
@@ -242,16 +242,18 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                 addQuickBookLogs(loginId,"Quickbook Id updated in TopProz customer", "200" );
             }
           });
+        });
         };
       
       if(customerData.hasOwnProperty("quickBookId") && (customerData.quickBookId != "" || customerData.quickBookId != null))
       {
-        quickbookAPIObj.getQBCustomer(req,customerData,req.session.realmId, (err, parsedBody) => {
+        quickbookAPIObj.getQBCustomer(req,customerData,req.session.realmId, async (err, parsedBody) => {
           if (err) {
-            if (err === 401) {
-              response.statusCode = err;
+            if (err.statusCode === 401) {
+              response.statusCode = err.statusCode;
               tools.checkForUnauthorized(req, { headers: { Authorization: `Bearer ${customerData.QBAccessToken}` } }, err, response)
-              .then(() => {
+              .then(({ err, response }) => {
+                console.log(err, response)
                 customerData.QBAccessToken = req.session.accessToken;
                 //Update NewToken in TopProze DB
                 saveQuickBookKeys(req.session.realmId,customerData.QBAccessToken,req.session.refreshToken,req.session.loginId, function (err, result) {
@@ -261,41 +263,49 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
                   } else {
                     console.log('New Token Updated in TopProz while reading customer');
                     addQuickBookLogs(loginId,"New Access Token Updated in TopProz", result.statusCode );
+                  
+                    quickbookAPIObj.getQBCustomer(req,customerData,req.session.realmId, async (retryError, retryResult) => {
+                      if (retryError) {
+                        addQuickBookLogs(loginId,retryError, retryError.statusCode );
+                        console.log("retryError: " + retryError.statusCode);
+                        if(isResponse == false)                      
+                          return res.json({'retryError: ': retryError});
+                      }
+                      else
+                      {
+                        if(retryError != null && (retryError.statusCode == 400 || retryError.statusCode == 404))
+                        {
+                          console.log("try adding customer");
+                          delete customerData['SyncToken'];
+                          await tryAddingCustomer(customerData);
+                        }
+                        else {
+                          customerData["SyncToken"] = retryResult.Customer.SyncToken;
+                          console.log(retryResult.Customer.SyncToken);
+                          await tryAddingCustomer(customerData);
+                        }
+                      }
+    
+                    });
+
                   }
                 }); 
-                quickbookAPIObj.getQBCustomer(req,customerData,req.session.realmId, (retryError, retryResult) => {
-                  if (retryError) {
-                    addQuickBookLogs(loginId,retryError, retryError.statusCode );
-                    console.log("retryError: " + retryError.statusCode);
-                    if(isResponse == false)                      
-                      return res.json({'retryError: ': retryError});
-                  }
-                  else
-                  {
-                    if(retryError != null && (retryError.statusCode == 400 || retryError.statusCode == 404))
-                    {
-                      console.log("try adding customer");
-                      delete customerData['SyncToken'];
-                      tryAddingCustomer(customerData);
-                    }
-                    else {
-                      customerData["SyncToken"] = retryResult.Customer.SyncToken;
-                      console.log(retryResult.Customer.SyncToken);
-                      tryAddingCustomer(customerData);
-                    }
-                  }
-
-                });            
+                         
               })
               .catch(authError => {
-                addQuickBookLogs(loginId,authError, authError.statusCode );
-                  res.redirect('/home')
+                console.log('auth error: ' + authError)
+                addQuickBookLogs(loginId,authError, 401); 
+                if (!res.headersSent)
+                  {
+                    res.json({authError});
+                  }
+                             
               });
           }else if(err == 400 || err == 404)
             {
               console.log("try adding customer");
               delete customerData['SyncToken'];
-              tryAddingCustomer(customerData);
+              await tryAddingCustomer(customerData);
             } 
           else if (err) {
               addQuickBookLogs(loginId,err, err.statusCode );
@@ -304,12 +314,13 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
           } else {
               customerData["SyncToken"] = parsedBody.Customer.SyncToken;
               console.log(parsedBody.Customer.SyncToken);
-              tryAddingCustomer(customerData);
+              await tryAddingCustomer(customerData);
           }
       });
       }
       else
-        tryAddingCustomer(customerData);
+        await tryAddingCustomer(customerData);      
+       
 
       } catch (parseError) {
         console.error('Error parsing response:', parseError);
@@ -339,6 +350,7 @@ function saveQuickBookKeys(quickBookId, accessToken, refreshToken, loginId, call
   
   request(options, function (err, response, body) {
     if (err || response.statusCode != 200) {
+      console.log('New Token is not saved in TopProz, ' + err);
       return callback({error: err, statusCode: response.statusCode});
     } else {
       console.log('User Create successful');
@@ -347,7 +359,7 @@ function saveQuickBookKeys(quickBookId, accessToken, refreshToken, loginId, call
   });
 }
 
-function addTopProzCustomer(resultBody) {
+function addTopProzCustomer(resultBody,loginId) {
   const url = `${config.base_url}customer/addcustomer`;
 
   const options = {
@@ -360,12 +372,12 @@ function addTopProzCustomer(resultBody) {
     },
     body: JSON.stringify({
     "quickBookId": resultBody.Id, //Not Required
-    "quickBookFullName": resultBody.FullyQualifiedName, //Not Required
-    "loginId": req.session.loginId, 
-    "customerEmailId": resultBody.PrimaryEmailAddr.Address,
-    "phoneNumber": resultBody.PrimaryPhone.FreeFormNumber,    
+    "quickBookFullName": resultBody.FullyQualifiedName ?? '', //Not Required
+    "loginId": loginId, 
+    "customerEmailId": resultBody.PrimaryEmailAddr.Address ?? '',
+    "phoneNumber": resultBody.PrimaryPhone.FreeFormNumber ?? '',    
     "customerType": "Residential",
-    "dispatchTextNumber": resultBody.PrimaryPhone.FreeFormNumber,
+    "dispatchTextNumber": resultBody.PrimaryPhone.FreeFormNumber ?? '',
     "vendor": "Quick Book",
     "source": "TV",
     "paymentMethod": "Cash",
@@ -376,14 +388,14 @@ function addTopProzCustomer(resultBody) {
     "doNotServe": false,
     "doNotServeNotes": "Text",
     "picturesAndVideos": [],    
-    "firstName": resultBody.DisplayName,
+    "firstName": resultBody.DisplayName ?? '',
     "lastName": "none",
     "userType": "Owner",
-    "address": resultBody.BillAddr.Line1,
-    "invoiceEmail": resultBody.PrimaryEmailAddr.Address,
-    "city": resultBody.BillAddr.City,
-    "state": resultBody.BillAddr.CountrySubDivisionCode,
-    "zipCode": resultBody.BillAddr.PostalCode,
+    "address": resultBody.BillAddr.Line1 ?? '',
+    "invoiceEmail": resultBody.PrimaryEmailAddr.Address ?? '',
+    "city": resultBody.BillAddr.City ?? '',
+    "state": resultBody.BillAddr.CountrySubDivisionCode ?? '',
+    "zipCode": resultBody.BillAddr.PostalCode ?? '',
     "adminNotes": "Good Customer"
     })
   };
@@ -392,12 +404,12 @@ function addTopProzCustomer(resultBody) {
     if (err || response.statusCode != 200) {
       {
         console.log("QB Customer is not adding in TopProz: " + response.statusCode);
-        addQuickBookLogs(req.session.loginId,err, response.statusCode );
+        addQuickBookLogs(loginId,err, response.statusCode );
       }
     } else {
       let parseBody = JSON.parse(response.body);
       console.log('QB Customer has added successfull in TopProz ' + response.statusCode);
-      addQuickBookLogs(req.session.loginId,'QB Customer has added successfull in TopProz', response.statusCode );
+      addQuickBookLogs(loginId,'QB Customer has added successfull in TopProz', response.statusCode );
       
     }
   });
@@ -465,4 +477,81 @@ function getTopProzNewToken(req,callback) {
   });
 }
 
-module.exports = {router, saveQuickBookKeys, addQuickBookLogs, addTopProzCustomer};
+function getQuickBookKeysByCompanyID(req, res, CompanyID, callback) {
+  // Make API request using topproz_token_id from session
+  request({
+    url: `${config.base_url}accountsetting/getQuickBookKeysByQbId/${CompanyID}`,
+    method: 'GET',
+    headers: {
+      'Authorization': config.topproz_token_id,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+  }, function (err, response, body) {
+    if (err) {
+      console.error('Request error:', err);
+      return callback( 'error: Internal server error' + ', details: ' + err, null );
+    }
+
+    if (!response) {
+      console.error('No response received');
+      return callback( 'error: No response received from server',null);
+    }
+
+    if (response.statusCode !== 200) {
+      console.log(response.statusCode + ' no record found ');
+      return callback(response.statusCode,null);
+    }
+
+    try {
+      
+      const parsedBody = JSON.parse(body);
+
+      // Send response with tokens or process them as needed
+      return callback(null,parsedBody)
+    } catch (parseError) {
+      console.error('Error parsing response:', parseError);
+      return callback( 'error: Error parsing response' + ', details: ' + parseError ,null);
+    }
+  });
+}
+
+function getproCustomerByQbIDS(req, res, CompanyID,QuickbookId ,callback) {
+  // Make API request using topproz_token_id from session
+  request({
+    url: `${config.base_url}proCustomer/proCustomerByQbIDS/${CompanyID}/${QuickbookId}`,
+    method: 'GET',
+    headers: {
+      'Authorization': config.topproz_token_id,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+  }, function (err, response, body) {
+    if (err) {
+      console.error('Request error:', err);
+      return callback( 'error: Internal server error' + ', details: ' + err, null );
+    }
+
+    if (!response) {
+      console.error('No response received');
+      return callback( 'error: No response received from server',null);
+    }
+
+    if (response.statusCode !== 200) {
+      console.log(response.statusCode + ' no record found ');
+      return callback(response.statusCode,null);
+    }
+
+    try {      
+      const parsedBody = JSON.parse(body);
+      console.log('TopProz Customer get successfully')
+      return callback(null,parsedBody)
+
+    } catch (parseError) {
+      console.error('Error parsing response:', parseError);
+      return callback( 'error: Error parsing response' + ', details: ' + parseError ,null);
+    }
+  });
+}
+
+module.exports = {router, saveQuickBookKeys, addQuickBookLogs, addTopProzCustomer, getQuickBookKeysByCompanyID,getproCustomerByQbIDS};

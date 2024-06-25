@@ -143,7 +143,7 @@ function addCustomerToQuickBooks(customerData, callback) {
       }, function (err, response, body) {
         if (err) {
           console.error('Request error:', err);
-          return callback(err + ' - 500 Internal server error') ;
+          return callback(err + ' - 500 Internal server error',null) ;
         }
     
         if (!response) {
@@ -154,11 +154,12 @@ function addCustomerToQuickBooks(customerData, callback) {
     
         if (response.statusCode !== 200) {
           console.log(response.statusCode + ' no record found ');
-          err = response.statusCode;
+          err = response;
           return callback(err, null);
         }
         else{
         try {
+          console.log('QB Customer get Successfully')
           const parsedBody = JSON.parse(body);
           callback(null,parsedBody); 
 

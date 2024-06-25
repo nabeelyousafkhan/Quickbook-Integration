@@ -21,9 +21,20 @@
         
       $("#result").html('Loading...')
       $("#qb-result").html('')
-      $.get(`/top_proz_api/proCustomerDetails/${CustomerID}`, function(data) {        
+      $.get(`/top_proz_api/proCustomerDetails/${CustomerID}`, function(data) {
+        
+        if(data.customerDetails.status == 200)
+        {
         $("#result").html(JSON.stringify(data.customerDetails, null, 2))
         $("#qb-result").html(JSON.stringify(data.quickBooksResponse.Customer, null, 2))
+        }
+        else
+        {
+          $("#result").html('Internal server error')
+          $("#qb-result").html('Internal server error')
+          if(data.authError.body.error == "invalid_grant")
+            window.location.href = '/home';
+        }
       })
       .fail(function(jqXHR, textStatus, errorThrown) {       
         

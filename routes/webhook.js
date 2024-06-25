@@ -19,7 +19,7 @@ router.post('/', function(req, res) {
     //console.log(req.body);
     console.log('The paylopad is :' + JSON.stringify(req.body));
     var signature = req.get('intuit-signature');
-  
+    var isTokenRefreshed = false;
     var fields = ['realmId', 'name', 'id', 'operation', 'lastUpdated'];
     var newLine= "\r\n";
   
@@ -37,84 +37,119 @@ router.post('/', function(req, res) {
      * Validates the payload with the intuit-signature hash
      */
     var hash = crypto.createHmac('sha256', config.webhooksVerifier).update(webhookPayload).digest('base64');
-    if (signature === hash) {
-        
-        console.log("The Webhook notification payload is :" + webhookPayload);
-        var myaccessToken = "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..pIecVdLpLLBkhIdKKr-5Ag.Hb_Q4b4gyQPQimwrcFBnxXrHV5RGFLUHaeeBwezGM06pc69QZsJzNtlX-Vawjm2efoOMvtyRat3WrDclN51IIpEEmukK_SjhFokPqxzqRarBJl_j_s2ZYit1jW-pT__OrVN8l9pVCSCtLj7cNgMYpGxjzJkCT5cg0FHY5-V0SlPohCalgBJ3Htonhg5gfT0OuiF752GvY5gkKghD50OeMxhh4ZvI-39pf53nwGKXEThXpuGByvTYcRNOyfsGrS4vjKeHOICcZ9Cbx0ACvYHmhDJlA256ayaFV864m4O32Qvt53JT6oMiVrDlalVj05V2j6rsRIqS696v2westjFUrB4oUmVZNXw1Gx5mM5SpbeaS5Jb9-wq_ic_EQiU2ZFWcGRhRObkgnnG8Gh4f-7fWHiLjOhdQFO197sDEcJpILSfdJDSyigzwWOwkITSAR1vxGS4ApSPFgy6dpb-HBvKWLiKnWknvX2Q6FTfb8EH3PbZTgKHG2vnaeRdXPMaKSHYSG0xzGkx4DhHhMrQiX3xYqiFZ2kOqnwRGAiam9ZGWP3x6SES0AxLnY-LS4gCoOSvt6zEMEQgSrbxOsC1kQENXNzRJGPk0eH2me5mWA9rXMWG_kyrcsEJYGf_fdo_FXrkhbZNmSUig017q1euccjUhUmmZjV1qMwkBTDGjXf2rWiPoTZFc7PoCIb7lfflxnQC9JQecl-oGiif31iZrleF_GYTDbnwMbXylMuPYL6J-5TQ.xAzo8xQs_CPX0fWXb0MfvQ";
-        var loginId = "64775f67053e90d344453a74";
-        var appendThis = [];
-          for(var i=0; i < req.body.eventNotifications.length; i++) {
-              var entities = req.body.eventNotifications[i].dataChangeEvent.entities;
-              var realmID = req.body.eventNotifications[i].realmId;
-              for(var j=0; j < entities.length; j++) {
-                  var notification = {
-                      'realmId': realmID,
-                      'name': entities[i].name,
-                      'quickBookId': entities[i].id,
-                      'operation': entities[i].operation,
-                      'lastUpdated': entities[i].lastUpdated,
-                      'QBAccessToken' : myaccessToken
-                  }
-                  appendThis.push(notification);
-                  
-                  if(notification.name == 'Customer')
-                  {
-                 
-                  quickbookAPIObj.getQBCustomer(req,notification,realmID, (err, Result) => {
-                    if (err) {
-                        if (err === 401) {                          
-                          tools.checkForUnauthorized(req, { headers: { Authorization: `Bearer ${myaccessToken}` } }, err, 401)
-                          .then(() => {
-                            //Update NewToken in TopProze DB
-                            saveQuickBookKeys(realmID,req.session.accessToken,myaccessToken,loginId, function (err, result) {
-                              if (err) {
-                                console.log('error: ' + err);
-                                top_proz_api.addQuickBookLogs(loginId,err, err.statusCode );
+    if (signature === hash) {      
+        console.log("The Webhook notification payload is :" + webhookPayload);        
+        const processedRealmIDs = new Set();
+
+        const processCustomer = (notification, realmID) => {
+          res=null;
+          req.session = {
+            accessToken: notification.QBAccessToken,
+            realmID: realmID,
+            refreshToken: notification.refreshToken,
+            refreshToken: notification.refreshToken,
+            loginId: notification.loginId
+        };
+          quickbookAPIObj.getQBCustomer(req, notification, realmID, (err, Result) => {
+              if (err) {
+                  if (err.statusCode === 401 && isTokenRefreshed == false) {
+                      let response = {statusCode : 401};  
+                      tools.checkForUnauthorized(req, {url: 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', headers: { Authorization: `Bearer ${notification.QBAccessToken}` } }, err, response)
+                      .then(({err, response}) => {
+                        console.log('Token is refreshed..' )
+                        top_proz_api.saveQuickBookKeys(realmID, response.newToken.accessToken, response.newToken.refreshToken, notification.loginId, (err, result) => {
+                            if (err) {
+                                  console.log('error: ' + err);
+                                  top_proz_api.addQuickBookLogs(notification.loginId, err, err.statusCode);
                               } else {
-                                console.log('New Token Updated in TopProz while reading customer from QB');
-                                top_proz_api.addQuickBookLogs(loginId,"New Access Token Updated in TopProz", result.statusCode );
+                                  console.log('New Token Updated in TopProz while reading customer from QB');
+                                  top_proz_api.addQuickBookLogs(notification.loginId, "New Access Token Updated in TopProz", result.statusCode);
+                                  isTokenRefreshed = true;
+                                  notification["QBAccessToken"] = response.newToken.accessToken;
+                                  quickbookAPIObj.getQBCustomer(req, notification, realmID, (retryError, retryResult) => {
+                                    if (retryError) {
+                                        console.log("retryError: " + JSON.stringify(retryError));
+                                        top_proz_api.addQuickBookLogs(notification.loginId, retryError, retryError.statusCode);
+                                    } else {
+                                        top_proz_api.getproCustomerByQbIDS(null,null,realmID,notification.quickBookId, (error, result) => {
+                                          if(error)
+                                            top_proz_api.addTopProzCustomer(retryResult.Customer,notification.loginId);
+                                          else
+                                            console.log('Customer already exists in TopProz')
+
+                                    });
+                                        
+                                    }
+                                });
                               }
-                            }); 
-                            quickbookAPIObj.getQBCustomer(req,notification,realmID, (retryError, retryResult) => {
-                              if (retryError) {
-                                addQuickBookLogs(loginId,retryError, retryError.statusCode );
-                                console.log("retryError: " + retryError.statusCode);
-                                top_proz_api.addQuickBookLogs(loginId,retryError, retryError.statusCode );
-                              }
-                              else
-                              {
-                                const parsedBody = JSON.parse(retryResult);
-                                console.log(parsedBody);
-                                top_proz_api.addTopProzCustomer(parsedBody);
-                              }
-            
-                            });            
-                          })
-                          .catch(authError => {
-                            top_proz_api.addQuickBookLogs(loginId,authError, authError.statusCode );
-                              res.redirect('/home')
-                          });
-                      }
-                      else if (err) {
-                        top_proz_api.addQuickBookLogs(loginId,err, err.statusCode );
-                        return console.log('Error: ' + err);
-                      }           
-                      }
+                          });  
+                          
+                      })
+                      .catch(authError => {
+                          top_proz_api.addQuickBookLogs(notification.loginId, authError, authError.statusCode);
+                          
+                      });
+                  } else {
+                      top_proz_api.addQuickBookLogs(notification.loginId, err, err.statusCode);
+                      console.log('Error: ' + err);
+                  }
+              } else {
+                  top_proz_api.getproCustomerByQbIDS(null,null,realmID,notification.quickBookId, (error, result) => {
+                    if(error)
+                      top_proz_api.addTopProzCustomer(Result.Customer,notification.loginId);
                     else
-                    {
-                        //const parsedBody = JSON.parse(Result);
-                        console.log(Result);
-                        //top_proz_api.addTopProzCustomer(parsedBody);
-                    }
-  
+                      console.log('Customer already exists in TopProz')
                   });
-                }
+                  
               }
+          });
+      };
+      
+      req.body.eventNotifications.forEach(notification => {
+        const entities = notification.dataChangeEvent.entities;
+        const realmID = notification.realmId;
+        let accessToken = "";
+        let loginId = "";
+        let refreshToken = "";
+
+        if (processedRealmIDs.has(realmID)) {
+          // If the realmID has already been processed, skip to the next notification
+          return;
+        }
+        processedRealmIDs.add(realmID);
+
+        top_proz_api.getQuickBookKeysByCompanyID(null,null,realmID,(Error, result) => {
+          if (Error) {
+            console.log("Error: " + Error);
           }
+          else
+          {
+            accessToken = result.data.quickBook.accessToken;
+            loginId = result.data.loginId;
+            refreshToken = result.data.quickBook.refreshToken;
+
+            entities.forEach(entity => {
+              var entityNotification = {
+                  'realmId': realmID,
+                  'name': entity.name,
+                  'quickBookId': entity.id,
+                  'operation': entity.operation,
+                  'lastUpdated': entity.lastUpdated,
+                  'QBAccessToken': accessToken,
+                  'refreshToken' : refreshToken,
+                  'loginId' : loginId
+              };
   
-          console.log(appendThis);
-  
-        return res.status(200).send('SUCCESS');
+              //console.log(entityNotification);  
+              if (entityNotification.name === 'Customer') {              
+                  processCustomer(entityNotification, realmID);
+              }
+          });
+          }
+        })   
+        
+      }); 
+       return res.status(200).send('SUCCESS');  
     }
     else
     {
