@@ -14,7 +14,7 @@ router.get('/', function (req, res) {
 function addCustomerToQuickBooks(customerData, callback) {
     const CompanyID = customerData.CompanyID;  
     const url = `${config.api_uri}${CompanyID}/customer`;
-
+  console.log(JSON.stringify(customerData))
     var jsonBody = {};
     if(customerData.hasOwnProperty("quickBookId") && customerData.hasOwnProperty("SyncToken") && (customerData.quickBookId != "" || customerData.quickBookId != null))
     {
@@ -23,12 +23,12 @@ function addCustomerToQuickBooks(customerData, callback) {
         "PrimaryEmailAddr": {
           "Address": customerData.EmailAddress
         },
-        "DisplayName": customerData.FullyQualifiedName,
+        "DisplayName": customerData.firstName + " " + customerData.lastname,
         "Suffix": "",
         "Title": "",
         "MiddleName": "",
         "Notes": "",
-        "FamilyName": "",
+        "FamilyName": customerData.lastname,
         "PrimaryPhone": {
           "FreeFormNumber": customerData.FreeFormNumber
         },
@@ -40,7 +40,7 @@ function addCustomerToQuickBooks(customerData, callback) {
           "Line1": customerData.address,
           "Country": ""
         },
-        "GivenName": customerData.FullyQualifiedName,
+        "GivenName": customerData.firstName,
         "Id": customerData.quickBookId,
         "SyncToken": customerData.SyncToken
       }
@@ -48,16 +48,17 @@ function addCustomerToQuickBooks(customerData, callback) {
     else
     {
       jsonBody =  {
-        "FullyQualifiedName": customerData.FullyQualifiedName,
+        "FullyQualifiedName": customerData.firstName + " " + customerData.lastname,
+        "CompanyName": customerData.FullyQualifiedName,
         "PrimaryEmailAddr": {
           "Address": customerData.EmailAddress
         },
-        "DisplayName": customerData.FullyQualifiedName,
+        "DisplayName": customerData.firstName + " " + customerData.lastname,
         "Suffix": "",
         "Title": "",
         "MiddleName": "",
         "Notes": "",
-        "FamilyName": "",
+        "FamilyName": customerData.lastname,
         "PrimaryPhone": {
           "FreeFormNumber": customerData.FreeFormNumber
         },
@@ -69,7 +70,7 @@ function addCustomerToQuickBooks(customerData, callback) {
           "Line1": customerData.address,
           "Country": ""
         },
-        "GivenName": customerData.FullyQualifiedName
+        "GivenName": customerData.firstName
       }
     }
     

@@ -251,7 +251,10 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
             CountrySubDivisionCode: parsedBody.data.customerBillingAddress.country,
             City: parsedBody.data.customerBillingAddress.city,
             PostalCode: parsedBody.data.customerBillingAddress.zipCode,
-            address: parsedBody.data.customerBillingAddress.address
+            address: parsedBody.data.customerBillingAddress.address,
+            firstName: parsedBody.data.customerBillingAddress.firstName,
+            lastname: parsedBody.data.customerBillingAddress.lastName,
+            CompanyName: parsedBody.data.customerBillingAddress.CompanyName
           };
         }
         else
@@ -266,6 +269,9 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
           City: parsedBody.data.customerBillingAddress.city,
           PostalCode: parsedBody.data.customerBillingAddress.zipCode,
           address: parsedBody.data.customerBillingAddress.address,
+          firstName: parsedBody.data.customerBillingAddress.firstName,
+          lastname: parsedBody.data.customerBillingAddress.lastName,
+          CompanyName: parsedBody.data.customerBillingAddress.CompanyName,
           quickBookId: parsedBody.data.quickBookId
         };
       }
@@ -497,8 +503,8 @@ function addTopProzCustomer(resultBody,loginId) {
     "doNotServe": false,
     "doNotServeNotes": "Text",
     "picturesAndVideos": [],    
-    "firstName": resultBody.DisplayName ?? '',
-    "lastName": "none",
+    "firstName": resultBody.GivenName ?? '',
+    "lastName": resultBody.FamilyName,
     "userType": "Owner",
     "address": resultBody.BillAddr.Line1 ?? '',
     "invoiceEmail": resultBody.PrimaryEmailAddr.Address ?? '',
@@ -556,9 +562,9 @@ function updateTopProzCustomer(resultBody,loginId) {
     "doNotServe": false,
     "doNotServeNotes": "Text",
     "picturesAndVideos": [],
-    "status": "Active",  
-    "firstName": resultBody.DisplayName ?? '',
-    "lastName": "none",
+    "status": "Active", 
+    "firstName": resultBody.GivenName ?? '',
+    "lastName": resultBody.FamilyName,
     "userType": "Owner",
     "address": resultBody.BillAddr.Line1 ?? '',
     "invoiceEmail": resultBody.PrimaryEmailAddr.Address ?? '',
