@@ -3,7 +3,9 @@ const request = require('request');
 const config = require('../config');
 const express = require('express');
 const router = express.Router();
+const fs = require('fs').promises;
 var top_proz_api = require('../routes/top_proz_api.js')
+let myTopProzeToken = "";
 
 router.get('/', function (req, res) {
   
@@ -76,7 +78,8 @@ function addCustomerToQuickBooks(customerData, callback) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${customerData.QBAccessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       json: jsonBody
     };
@@ -89,7 +92,7 @@ function addCustomerToQuickBooks(customerData, callback) {
     
       if (response.statusCode !== 200) {
         console.log(response.statusCode + ' no record found qb');
-        return callback({ error: 'No record found', statusCode: response.statusCode });
+        return callback({ error: JSON.stringify(response), statusCode: response.statusCode });
       }
     
       try {
@@ -103,14 +106,20 @@ function addCustomerToQuickBooks(customerData, callback) {
   }
 
   function updateCustomerQBID(loginId,customerId,quickBookId) {
-    const url = `${config.base_url}proCustomer/updateCustomerQBID`;
-    
+    fs.readFile('data.json', 'utf8')
+  .then(data => {    
+    const parsedObject = JSON.parse(data);
+    myTopProzeToken = parsedObject.topproz_token_id;
+  })
+
+    const url = `${config.base_url}proCustomer/updateCustomerQBID`;    
     const options = {
       url: url,
       method: 'PUT',
       headers: {
-        'Authorization': config.topproz_token_id,
-        'Content-Type': 'application/json'
+        'Authorization': myTopProzeToken,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
         'loginId': loginId,
