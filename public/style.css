@@ -47,4 +47,12 @@ input[type=text]:focus {
   flex: 50%;
   padding: 10px;
   box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+code {
+  display: block;
+  white-space: pre-wrap;
 }
