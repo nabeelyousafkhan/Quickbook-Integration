@@ -202,8 +202,7 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
   fs.readFile('data.json', 'utf8')
   .then(data => {    
     const parsedObject = JSON.parse(data);
-    myTopProzeToken = parsedObject.topproz_token_id;
-  })
+    myTopProzeToken = parsedObject.topproz_token_id;  
   
     request({
       url: `${config.base_url}proCustomer/proCustomerDetails/${loginId}/${customerId}`,
@@ -433,6 +432,7 @@ router.get('/proCustomerDetails/:customerId', function (req, res) {
       }
     }
     });
+  })
   });
 
 function saveQuickBookKeys(quickBookId, accessToken, refreshToken, loginId, callback) {
