@@ -67,8 +67,9 @@ var Tools = function () {
           request(requestObj, function (err, response) {
             // Logic (including error checking) should be continued with new
             // err/response objects.
-            response.newToken = newToken;
             resolve({err, response})
+            if(response != null || response != 'undefined')
+              response.newToken = newToken;
           })
         }, function(err) {
           // Error refreshing the tokens
