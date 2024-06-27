@@ -75,8 +75,11 @@ router.post('/', function(req, res) {
                                           if(error)
                                             top_proz_api.addTopProzCustomer(retryResult.Customer,notification.loginId);
                                           else
+                                          {
                                             console.log('Customer already exists in TopProz')
-
+                                            top_proz_api.updateTopProzCustomer(retryResult.Customer,notification.loginId);
+                                          }
+                                            
                                     });
                                         
                                     }
@@ -98,7 +101,11 @@ router.post('/', function(req, res) {
                     if(error)
                       top_proz_api.addTopProzCustomer(Result.Customer,notification.loginId);
                     else
+                    {
                       console.log('Customer already exists in TopProz')
+                      top_proz_api.updateTopProzCustomer(Result.Customer,notification.loginId);
+                    }
+
                   });
                   
               }
@@ -113,10 +120,9 @@ router.post('/', function(req, res) {
         let refreshToken = "";
 
         if (processedRealmIDs.has(realmID)) {
-          // If the realmID has already been processed, skip to the next notification
+          
           return;
         }
-        processedRealmIDs.add(realmID);
 
         top_proz_api.getQuickBookKeysByCompanyID(null,null,realmID,(Error, result) => {
           if (Error) {

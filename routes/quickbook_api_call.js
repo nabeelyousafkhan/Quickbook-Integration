@@ -92,7 +92,7 @@ function addCustomerToQuickBooks(customerData, callback) {
     
       if (response.statusCode !== 200) {
         console.log(response.statusCode + ' no record found qb');
-        return callback({ error: JSON.stringify(response), statusCode: response.statusCode });
+        return callback({ error: JSON.stringify(response), statusCode: response.statusCode },null);
       }
     
       try {
@@ -110,7 +110,6 @@ function addCustomerToQuickBooks(customerData, callback) {
   .then(data => {    
     const parsedObject = JSON.parse(data);
     myTopProzeToken = parsedObject.topproz_token_id;
-  })
 
     const url = `${config.base_url}proCustomer/updateCustomerQBID`;    
     const options = {
@@ -130,13 +129,16 @@ function addCustomerToQuickBooks(customerData, callback) {
     
     request(options, function (err, response, body) {
       if (err || response.statusCode != 200) {
-        console.log(err + " - statusCode: " +  response.statusCode);
+        console.log(err + "QB Id is not updating in TopProz | statusCode: " +  response.statusCode);
         return {error: err, statusCode: response.statusCode};
       } else {
         console.log('Update quickBookId successful');
-        return response + " - Update quickBookId successful";
+        return response.statusCode + " - Update quickBookId successful";
       }
     });
+
+  })
+
   }
   
  function getQBCustomer(req, customerData,CompanyID,callback) {

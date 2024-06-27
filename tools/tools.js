@@ -68,7 +68,8 @@ var Tools = function () {
             // Logic (including error checking) should be continued with new
             // err/response objects.
             resolve({err, response})
-            if(response != null || response != 'undefined')
+            console.log(response)
+            if(response)
               response.newToken = newToken;
           })
         }, function(err) {
