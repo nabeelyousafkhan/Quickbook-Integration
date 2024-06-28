@@ -804,7 +804,7 @@ function getQuickBookKeysByCompanyID(CompanyID, callback) {
 
 }
 
-function getproCustomerByQbIDS(req, res, CompanyID,QuickbookId ,callback) {
+function getproCustomerByQbIDS(CompanyID,QuickbookId ,callback) {
   // Make API request using topproz_token_id from session
   fs.readFile('data.json', 'utf8')
   .then(data => {    
@@ -822,19 +822,19 @@ function getproCustomerByQbIDS(req, res, CompanyID,QuickbookId ,callback) {
     }, function (err, response, body) {
       if (err) {
         console.error('Request error:', err);
-        addQuickBookLogs(req.session.loginId,err, response.statusCode );
+        addQuickBookLogs('Webhook',err, response.statusCode );
         return callback( 'error: Internal server error' + ', details: ' + err, null );
       }
   
       if (!response) {
         console.error('No response received');
-        addQuickBookLogs(req.session.loginId,err, response.statusCode );
+        addQuickBookLogs('Webhook',err, response.statusCode );
         return callback( 'error: No response received from server',null);
       }
   
       if (response.statusCode !== 200) {
         console.log(response.statusCode + ' no record found ');
-        addQuickBookLogs(req.session.loginId,JSON.stringify(response), response.statusCode );
+        addQuickBookLogs('Webhook',JSON.stringify(response), response.statusCode );
         return callback(response.statusCode,null);
       }
   
@@ -845,7 +845,7 @@ function getproCustomerByQbIDS(req, res, CompanyID,QuickbookId ,callback) {
   
       } catch (parseError) {
         console.error('Error parsing response:', parseError);
-        addQuickBookLogs(req.session.loginId,'Error parsing response' + parseError, response.statusCode );
+        addQuickBookLogs('Webhook','Error parsing response' + parseError, response.statusCode );
         return callback( 'error: Error parsing response' + ', details: ' + parseError ,null);
       }
     });

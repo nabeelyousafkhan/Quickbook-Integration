@@ -73,7 +73,7 @@ router.post('/', function(req, res) {
                                         console.log("retryError: " + JSON.stringify(retryError));
                                         top_proz_api.addQuickBookLogs(notification.loginId, retryError, retryError.statusCode);
                                     } else {
-                                        top_proz_api.getproCustomerByQbIDS(null,null,realmID,notification.quickBookId, (error, result) => {
+                                        top_proz_api.getproCustomerByQbIDS(realmID,notification.quickBookId, (error, result) => {
                                           if(error)
                                             top_proz_api.addTopProzCustomer(retryResult.Customer,notification.loginId);
                                           else
