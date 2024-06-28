@@ -25,7 +25,7 @@ router.post('/', function(req, res) {
   
     // if signature is empty return 401
     if (!signature) {
-        return res.status(401).send('FORBIDDEN');
+        return res.status(401).send('FORBIDDEN Signature is empty');
     }
   
     // if payload is empty, don't do anything
@@ -37,6 +37,8 @@ router.post('/', function(req, res) {
      * Validates the payload with the intuit-signature hash
      */
     var hash = crypto.createHmac('sha256', config.webhooksVerifier).update(webhookPayload).digest('base64');
+    top_proz_api.addQuickBookLogs("Webhook","has: " + hash + " | signature: " + signature,"0");
+    
     if (signature === hash) {      
         console.log("The Webhook notification payload is :" + webhookPayload);        
         const processedRealmIDs = new Set();
