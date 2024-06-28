@@ -489,10 +489,10 @@ function addTopProzCustomer(resultBody,loginId) {
     "quickBookId": resultBody.Id, //Not Required
     "quickBookFullName": resultBody.FullyQualifiedName ?? '', //Not Required
     "loginId": loginId, 
-    "customerEmailId": resultBody.PrimaryEmailAddr.Address ?? '',
-    "phoneNumber": resultBody.PrimaryPhone.FreeFormNumber ?? '',    
+    "customerEmailId": resultBody.PrimaryEmailAddr ? resultBody.PrimaryEmailAddr.Address ?? '' : '',
+    "phoneNumber": resultBody.PrimaryPhone ? resultBody.PrimaryPhone.FreeFormNumber ?? '' : '',    
     "customerType": "Residential",
-    "dispatchTextNumber": resultBody.PrimaryPhone.FreeFormNumber ?? '',
+    "dispatchTextNumber": resultBody.PrimaryPhone ? resultBody.PrimaryPhone.FreeFormNumber ?? '' : '',
     "vendor": "Quick Book",
     "source": "TV",
     "paymentMethod": "Cash",
@@ -506,11 +506,11 @@ function addTopProzCustomer(resultBody,loginId) {
     "firstName": resultBody.GivenName ?? '',
     "lastName": resultBody.FamilyName,
     "userType": "Owner",
-    "address": resultBody.BillAddr.Line1 ?? '',
-    "invoiceEmail": resultBody.PrimaryEmailAddr.Address ?? '',
-    "city": resultBody.BillAddr.City ?? '',
-    "state": resultBody.BillAddr.CountrySubDivisionCode ?? '',
-    "zipCode": resultBody.BillAddr.PostalCode ?? '',
+    "address": resultBody.BillAddr ? resultBody.BillAddr.Line1 ?? '' : '',
+    "invoiceEmail": resultBody.BillAddr ? resultBody.PrimaryEmailAddr.Address ?? '' : '',
+    "city": resultBody.BillAddr ? resultBody.BillAddr.City ?? '' : '',
+    "state": resultBody.BillAddr ? resultBody.BillAddr.CountrySubDivisionCode ?? '' : '',
+    "zipCode": resultBody.BillAddr ? resultBody.BillAddr.PostalCode ?? '' : '',
     "adminNotes": "Good Customer"
     })
   };
@@ -549,9 +549,9 @@ function updateTopProzCustomer(resultBody,loginId) {
     body: JSON.stringify({
     "quickBookId": resultBody.Id, //Not Required
     "proLoginId": loginId, 
-    "phoneNumber": resultBody.PrimaryPhone.FreeFormNumber ?? '',    
+    "phoneNumber": resultBody.PrimaryPhone ? resultBody.PrimaryPhone.FreeFormNumber ?? '' : '',    
     "customerType": "Residential",
-    "dispatchTextNumber": resultBody.PrimaryPhone.FreeFormNumber ?? '',
+    "dispatchTextNumber": resultBody.PrimaryPhone ? resultBody.PrimaryPhone.FreeFormNumber ?? '' : '',
     "vendor": "Quick Book",
     "source": "TV",
     "paymentMethod": "Cash",
@@ -566,11 +566,11 @@ function updateTopProzCustomer(resultBody,loginId) {
     "firstName": resultBody.GivenName ?? '',
     "lastName": resultBody.FamilyName,
     "userType": "Owner",
-    "address": resultBody.BillAddr.Line1 ?? '',
-    "invoiceEmail": resultBody.PrimaryEmailAddr.Address ?? '',
-    "city": resultBody.BillAddr.City ?? '',
-    "state": resultBody.BillAddr.CountrySubDivisionCode ?? '',
-    "zipCode": resultBody.BillAddr.PostalCode ?? '',
+    "address": resultBody.BillAddr ? resultBody.BillAddr.Line1 ?? '' : '',
+    "invoiceEmail": resultBody.PrimaryEmailAddr ? resultBody.PrimaryEmailAddr.Address ?? '' : '',
+    "city": resultBody.BillAddr ? resultBody.BillAddr.City ?? '' : '',
+    "state": resultBody.BillAddr ? resultBody.BillAddr.CountrySubDivisionCode ?? '' : '',
+    "zipCode": resultBody.BillAddr ? resultBody.BillAddr.PostalCode ?? '' : '',
     "adminNotes": "Good Customer"
     })
   };
@@ -648,6 +648,7 @@ function getTopProzNewToken(req,callback) {
     if (err || response.statusCode != 200) {
       {
         console.log("Token is not Generating: " + response.statusCode);
+        addQuickBookLogs(req.session.loginId,err, response.statusCode );
         return callback(null,"error: " + err  + " | statusCode: " + response.statusCode);
       }
     } else {
@@ -655,6 +656,7 @@ function getTopProzNewToken(req,callback) {
       console.log('New Token Generated ' + response.statusCode);
       TopProzTokenWrite (parseBody.data.token, (err, data) => {
         if (err) {
+          addQuickBookLogs(req.session.loginId,err, response.statusCode );
           return res.json(err);
         }
         else
@@ -682,16 +684,67 @@ function getQuickBookKeysByCompanyID(req, res, CompanyID, callback) {
     }, function (err, response, body) {
       if (err) {
         console.error('Request error:', err);
+        addQuickBookLogs("Webhook",err, response.statusCode );
         return callback( 'error: Internal server error' + ', details: ' + err, null );
       }
   
       if (!response) {
         console.error('No response received');
+        addQuickBookLogs("Webhook",err, response.statusCode );
         return callback( 'error: No response received from server',null);
       }
   
       if (response.statusCode !== 200) {
         console.log(response.statusCode + ' no record found ');
+        addQuickBookLogs("Webhook",JSON.stringify(response), response.statusCode );
+        getTopProzNewToken((Error, result) => {
+          if (Error) {
+            console.log("Error: " + Error);
+          }
+          else
+          {
+            fs.readFile('data.json', 'utf8')
+            .then(data => {    
+              const parsedObject = JSON.parse(data);
+              myTopProzeToken = parsedObject.topproz_token_id;              
+              request({
+                url: `${config.base_url}accountsetting/getQuickBookKeysByQbId/${CompanyID}`,
+                method: 'GET',
+                headers: {
+                  'Authorization': myTopProzeToken,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+              }, function (err, response, body) {
+                if (err) {
+                  console.error('Request error:', err);
+                  addQuickBookLogs("Webhook",err, response.statusCode );
+                  return callback( 'error: Internal server error' + ', details: ' + err, null );
+                }            
+                if (!response) {
+                  console.error('No response received');
+                  addQuickBookLogs("Webhook",err, response.statusCode );
+                  return callback( 'error: No response received from server',null);
+                }            
+                if (response.statusCode !== 200) {
+                  console.log(response.statusCode + ' no record found ');
+                  addQuickBookLogs("Webhook",JSON.stringify(response), response.statusCode );
+                  return callback(response.statusCode,null);
+                }
+            
+                try {                  
+                  const parsedBody = JSON.parse(body);            
+                  // Send response with tokens or process them as needed
+                  return callback(null,parsedBody)
+                } catch (parseError) {
+                  console.error('Error parsing response:', parseError);
+                  return callback( 'error: Error parsing response' + ', details: ' + parseError ,null);
+                }
+              });
+
+            })
+          }
+        })
         return callback(response.statusCode,null);
       }
   
@@ -729,16 +782,19 @@ function getproCustomerByQbIDS(req, res, CompanyID,QuickbookId ,callback) {
     }, function (err, response, body) {
       if (err) {
         console.error('Request error:', err);
+        addQuickBookLogs(req.session.loginId,err, response.statusCode );
         return callback( 'error: Internal server error' + ', details: ' + err, null );
       }
   
       if (!response) {
         console.error('No response received');
+        addQuickBookLogs(req.session.loginId,err, response.statusCode );
         return callback( 'error: No response received from server',null);
       }
   
       if (response.statusCode !== 200) {
         console.log(response.statusCode + ' no record found ');
+        addQuickBookLogs(req.session.loginId,JSON.stringify(response), response.statusCode );
         return callback(response.statusCode,null);
       }
   
@@ -749,11 +805,11 @@ function getproCustomerByQbIDS(req, res, CompanyID,QuickbookId ,callback) {
   
       } catch (parseError) {
         console.error('Error parsing response:', parseError);
+        addQuickBookLogs(req.session.loginId,'Error parsing response' + parseError, response.statusCode );
         return callback( 'error: Error parsing response' + ', details: ' + parseError ,null);
       }
     });
   })
-
 }
 
 module.exports = {router, saveQuickBookKeys, addQuickBookLogs, addTopProzCustomer, getQuickBookKeysByCompanyID,getproCustomerByQbIDS,updateTopProzCustomer};
