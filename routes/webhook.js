@@ -126,7 +126,7 @@ router.post('/', function(req, res) {
           return;
         }
 
-        top_proz_api.getQuickBookKeysByCompanyID(null,null,realmID,(Error, result) => {
+        top_proz_api.getQuickBookKeysByCompanyID(realmID,(Error, result) => {
           if (Error) {
             console.log("Error: " + Error);
           }

@@ -122,7 +122,7 @@ async function TopProzTokenWrite (Token,callback)
     
     // Parse the JSON string back to an object
     try {
-      const parsedObject = JSON.parse(data);
+      //const parsedObject = JSON.parse(data);
       callback(null,'true')
     } catch (parseError) {
       console.error('Error parsing JSON', parseError);
@@ -666,7 +666,46 @@ function getTopProzNewToken(req,callback) {
   });
 }
 
-function getQuickBookKeysByCompanyID(req, res, CompanyID, callback) {
+function getTopProzNewTokenForWebhook(callback) {
+  const url = `${config.base_url}auth/webLogin`;
+
+  const options = {
+    url: url,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      'emailId': "yasser.abdelkader2020@gmail.com",
+      'password': "Test&123",
+      'role': "PRO"
+    })
+  };
+  
+  request(options, function (err, response, body) {
+    if (err || response.statusCode != 200) {
+      {
+        console.log("Token is not Generating: " + response.statusCode);
+        addQuickBookLogs("Webhook",err, response.statusCode );
+        return callback(null,"error: " + err  + " | statusCode: " + response.statusCode);
+      }
+    } else {
+      let parseBody = JSON.parse(response.body);
+      console.log('New Token Generated ' + response.statusCode);
+      TopProzTokenWrite (parseBody.data.token, (err, data) => {
+        if (err) {
+          addQuickBookLogs("Webhook",err, response.statusCode );
+          return res.json(err);
+        }
+        else
+        return callback(parseBody.data.token,null);
+      });
+    }
+  });
+}
+
+function getQuickBookKeysByCompanyID(CompanyID, callback) {
   // Make API request using topproz_token_id from session
   fs.readFile('data.json', 'utf8')
   .then(data => {    
@@ -697,9 +736,10 @@ function getQuickBookKeysByCompanyID(req, res, CompanyID, callback) {
       if (response.statusCode !== 200) {
         console.log(response.statusCode + ' no record found ');
         addQuickBookLogs("Webhook",JSON.stringify(response), response.statusCode );
-        getTopProzNewToken((Error, result) => {
+        getTopProzNewTokenForWebhook((Error, result) => {
           if (Error) {
             console.log("Error: " + Error);
+            addQuickBookLogs("Webhook",'Error generating TopProz Token', response.statusCode );
           }
           else
           {

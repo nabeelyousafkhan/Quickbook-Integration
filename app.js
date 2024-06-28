@@ -39,7 +39,7 @@ app.use('/webhook', require('./routes/webhook.js'));
 
 // Start server on HTTP (will use ngrok for HTTPS forwarding)
 app.listen(3000, function () {
-  console.log('Example app listening on port 3000!')
+  console.log('TopProz app listening on port 3000!')
 })
 
 module.exports = app;
