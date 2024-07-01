@@ -14,7 +14,7 @@ router.get('/', function(req, res) {
     
 })
 
-router.post('/', async function(req, res) {
+router.post('/', function(req, res) {
     //await top_proz_api.LogsWrite("Webhook","Webhook Call Successful","1");
     var webhookPayload = JSON.stringify(req.body);
     //console.log(req.body);
@@ -24,7 +24,6 @@ router.post('/', async function(req, res) {
     var isTokenRefreshed = false;
     var fields = ['realmId', 'name', 'id', 'operation', 'lastUpdated'];
     var newLine= "\r\n";
-    console.log('Signature: ' + signature)
     // if signature is empty return 401
     if (!signature) {
         return res.status(401).send('FORBIDDEN Signature is empty');
@@ -43,7 +42,6 @@ router.post('/', async function(req, res) {
       console.log("Webhook","hash: " + hash + " | signature: " + signature)
     if (signature === hash) {      
         console.log("The Webhook notification payload is :" + webhookPayload);
-        await top_proz_api.LogsWrite("Webhook","The Webhook notification payload is :" + webhookPayload,"200");
         const processedRealmIDs = new Set();
 
         const processCustomer = (notification, realmID) => {
@@ -55,36 +53,31 @@ router.post('/', async function(req, res) {
             refreshToken: notification.refreshToken,
             loginId: notification.loginId
         };
-         quickbookAPIObj.getQBCustomer(req, notification, realmID, async (err, Result) => {
+         quickbookAPIObj.getQBCustomer(req, notification, realmID, (err, Result) => {
             console.log("webhook error geting customer: " + err)
               if (err) {
                   if (err.statusCode === 401 && isTokenRefreshed == false) {
                       let response = {statusCode : 401};  
                       tools.checkForUnauthorized(req, {url: 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', headers: { Authorization: `Bearer ${notification.QBAccessToken}` } }, err, response)
-                      .then(async ({err, response}) => {
+                      .then(({err, response}) => {
                         console.log('Token is refreshed..' )
-                        await top_proz_api.LogsWrite("Webhook",'Token is refreshed..',"200");
-                        top_proz_api.saveQuickBookKeys(realmID, response.newToken.accessToken, response.newToken.refreshToken, notification.loginId, async (err, result) => {
+                        top_proz_api.saveQuickBookKeys(realmID, response.newToken.accessToken, response.newToken.refreshToken, notification.loginId, (err, result) => {
                             if (err) {
                                   console.log('error: ' + err);
-                                  await top_proz_api.LogsWrite("Webhook",'error: ' + err,err.statusCode);
                               } else {
                                   console.log('New Token Updated in TopProz while reading customer from QB');
-                                  await top_proz_api.LogsWrite("Webhook",'New Token Updated in TopProz while reading customer from QB',"200");
                                   isTokenRefreshed = true;
                                   notification["QBAccessToken"] = response.newToken.accessToken;
-                                  quickbookAPIObj.getQBCustomer(req, notification, realmID, async (retryError, retryResult) => {
+                                  quickbookAPIObj.getQBCustomer(req, notification, realmID, (retryError, retryResult) => {
                                     if (retryError) {
                                         console.log("retryError: " + JSON.stringify(retryError));
-                                        await top_proz_api.LogsWrite("Webhook",'error: ' + JSON.stringify(retryError),"400");
                                     } else {
-                                        top_proz_api.getproCustomerByQbIDS(realmID,notification.quickBookId, async (error, result) => {
+                                        top_proz_api.getproCustomerByQbIDS(realmID,notification.quickBookId, (error, result) => {
                                           if(error)
                                             top_proz_api.addTopProzCustomer(retryResult.Customer,notification.loginId);
                                           else
                                           {
                                             console.log('Customer already exists in TopProz')
-                                            await top_proz_api.LogsWrite("Webhook",'Customer already exists in TopProz',"200");
                                             top_proz_api.updateTopProzCustomer(retryResult.Customer,notification.loginId);
                                           }
                                             
@@ -96,22 +89,20 @@ router.post('/', async function(req, res) {
                           });  
                           
                       })
-                      .catch(async authError => {
-                          await top_proz_api.LogsWrite("Webhook", authError, authError.statusCode);
+                      .catch(authError => {
+                        console.log("Webhook", authError, authError.statusCode);
                           
                       });
                   } else {
-                      await top_proz_api.LogsWrite("Webhook", err, err.statusCode);
                       console.log('Error: ' + err);
                   }
               } else {
-                  top_proz_api.getproCustomerByQbIDS(realmID,notification.quickBookId, async (error, result) => {
+                  top_proz_api.getproCustomerByQbIDS(realmID,notification.quickBookId, (error, result) => {
                     if(error)
                       top_proz_api.addTopProzCustomer(Result.Customer,notification.loginId);
                     else
                     {
                       console.log('Customer already exists in TopProz')
-                      await top_proz_api.LogsWrite("Webhook",'Customer already exists in TopProz',"200");
                       top_proz_api.updateTopProzCustomer(Result.Customer,notification.loginId);
                     }
 
