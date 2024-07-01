@@ -38,7 +38,7 @@ let myTopProzeToken = "";
 // });
 
 router.get('/', function (req, res) {
-  const filePath = path.resolve(__dirname, '/logs.json');
+  const filePath = path.resolve(__dirname, 'logs.json');
   res.download(filePath, 'logs.txt', (err) => {
     if (err) {
       console.error('Error occurred while sending the file:', err);
