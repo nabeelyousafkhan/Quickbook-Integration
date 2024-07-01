@@ -460,10 +460,12 @@ function saveQuickBookKeys(quickBookId, accessToken, refreshToken, loginId, call
   
   request(options, function (err, response, body) {
     if (err || response.statusCode != 200) {
-      console.log('New Token is not saved in TopProz, ' + err.statusCode);
+      console.log('New Token is not saved in TopProz, ' + response.statusCode);
+      top_proz_api.addQuickBookLogs(loginId,'New Token is not saved in TopProz, ' + response.statusCode, response.statusCode);
       return callback({error: err, statusCode: response.statusCode});
     } else {
-      console.log('User Create successful');
+      console.log('New accessToken updated successful in TopProz');
+      top_proz_api.addQuickBookLogs(loginId,'New accessToken updated successful in TopProz ' + response.statusCode, response.statusCode);
       return callback(null, {response: "User Create successful"});
     }
   });
@@ -582,7 +584,10 @@ function updateTopProzCustomer(resultBody,loginId) {
     if (err || response.statusCode != 200) {
       {
         console.log("QB Customer is not updating in TopProz: " + response.statusCode);
-        addQuickBookLogs(loginId,err, response.statusCode );
+        if(response.body)
+          addQuickBookLogs(loginId,JSON.stringify(response.body), response.statusCode );
+        else
+          addQuickBookLogs(loginId,JSON.stringify(response), response.statusCode );
       }
     } else {
       let parseBody = JSON.parse(response.body);
@@ -836,14 +841,15 @@ function getproCustomerByQbIDS(CompanyID,QuickbookId ,callback) {
       }
   
       if (response.statusCode !== 200) {
-        console.log(response.statusCode + ' no record found ');
+        console.log(response.statusCode + ' TopProz keys is not getting ');
         addQuickBookLogs('Webhook',JSON.stringify(response), response.statusCode );
         return callback(response.statusCode,null);
       }
   
       try {      
         const parsedBody = JSON.parse(body);
-        console.log('TopProz Customer get successfully')
+        console.log('TopProz keys get successfully')
+        addQuickBookLogs('Webhook','TopProz keys get successfully', response.statusCode );
         return callback(null,parsedBody)
   
       } catch (parseError) {
