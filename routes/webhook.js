@@ -119,9 +119,9 @@ router.post('/', function(req, res) {
         let loginId = "";
         let refreshToken = "";
         console.log(entities)
-        if (processedRealmIDs.has(realmID)) {
-          return;
-        }
+        // if (processedRealmIDs.has(realmID)) {
+        //   return;
+        // }
 
         top_proz_api.getQuickBookKeysByCompanyID(realmID,(Error, result) => {
           console.log(Error)
