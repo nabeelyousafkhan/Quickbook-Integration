@@ -754,7 +754,7 @@ function getQuickBookKeysByCompanyID(CompanyID, callback) {
   .then(data => {    
     const parsedObject = JSON.parse(data);
     myTopProzeToken = parsedObject.topproz_token_id;
-    
+    console.log(myTopProzeToken)
     request({
       url: `${config.base_url}accountsetting/getQuickBookKeysByQbId/${CompanyID}`,
       method: 'GET',
