@@ -118,13 +118,13 @@ router.post('/', function(req, res) {
         let accessToken = "";
         let loginId = "";
         let refreshToken = "";
-        console.log(req.body.eventNotifications)
+        console.log(req.body.dataChangeEvent.entities)
         if (processedRealmIDs.has(realmID)) {
-            console.log('has readmI: ' + realmID)
           return;
         }
 
         top_proz_api.getQuickBookKeysByCompanyID(realmID,(Error, result) => {
+          console.log(Error)
           if (Error) {
             console.log("Error: " + Error);
           }
@@ -133,7 +133,7 @@ router.post('/', function(req, res) {
             accessToken = result.data.quickBook.accessToken;
             loginId = result.data.loginId;
             refreshToken = result.data.quickBook.refreshToken;
-
+            console.log('accessToken: ' + accessToken)
             entities.forEach(entity => {
               var entityNotification = {
                   'realmId': realmID,
