@@ -518,8 +518,8 @@ function addTopProzCustomer(resultBody,loginId) {
   request(options, function (err, response, body) {
     if (err || response.statusCode != 200) {
       {
-        console.log("QB Customer is not adding in TopProz: " + response.statusCode);
-        addQuickBookLogs(loginId,err, response.statusCode );
+        console.log("QB Customer is not adding in TopProz: " + response.statusCode );
+        addQuickBookLogs(loginId,JSON.stringify(response), response.statusCode );
       }
     } else {
       let parseBody = JSON.parse(response.body);

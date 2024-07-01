@@ -99,7 +99,7 @@ router.post('/', function(req, res) {
                       console.log('Error: ' + err);
                   }
               } else {
-                  top_proz_api.getproCustomerByQbIDS(null,null,realmID,notification.quickBookId, (error, result) => {
+                  top_proz_api.getproCustomerByQbIDS(realmID,notification.quickBookId, (error, result) => {
                     if(error)
                       top_proz_api.addTopProzCustomer(Result.Customer,notification.loginId);
                     else
