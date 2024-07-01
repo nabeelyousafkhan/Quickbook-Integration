@@ -27,6 +27,7 @@ router.post('/', async function(req, res) {
   
     // if signature is empty return 401
     if (!signature) {
+        console.log('FORBIDDEN Signature is empty')
         return res.status(401).send('FORBIDDEN Signature is empty');
     }
   
