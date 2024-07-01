@@ -24,10 +24,9 @@ router.post('/', async function(req, res) {
     var isTokenRefreshed = false;
     var fields = ['realmId', 'name', 'id', 'operation', 'lastUpdated'];
     var newLine= "\r\n";
-  
+    console.log('Signature: ' + signature)
     // if signature is empty return 401
     if (!signature) {
-        console.log('FORBIDDEN Signature is empty')
         return res.status(401).send('FORBIDDEN Signature is empty');
     }
   
