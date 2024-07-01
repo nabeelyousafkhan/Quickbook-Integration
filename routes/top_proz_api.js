@@ -498,11 +498,11 @@ function saveQuickBookKeys(quickBookId, accessToken, refreshToken, loginId, call
   request(options, function (err, response, body) {
     if (err || response.statusCode != 200) {
       console.log('New Token is not saved in TopProz, ' + response.statusCode);
-      top_proz_api.addQuickBookLogs(loginId,'New Token is not saved in TopProz, ' + response.statusCode, response.statusCode);
+      addQuickBookLogs(loginId,'New Token is not saved in TopProz, ' + response.statusCode, response.statusCode);
       return callback({error: err, statusCode: response.statusCode});
     } else {
       console.log('New accessToken updated successful in TopProz');
-      top_proz_api.addQuickBookLogs(loginId,'New accessToken updated successful in TopProz ' + response.statusCode, response.statusCode);
+      addQuickBookLogs(loginId,'New accessToken updated successful in TopProz ' + response.statusCode, response.statusCode);
       return callback(null, {response: "User Create successful"});
     }
   });
