@@ -603,8 +603,9 @@ function addQuickBookLogs(loginId,message, status) {
   .then(data => {    
     const parsedObject = JSON.parse(data);
     myTopProzeToken = parsedObject.topproz_token_id;
+    console.log(loginId,message, status,myTopProzeToken)
 
-    const url = `${config.base_url}quickBookLogs/addQuickBookLogs`;
+  const url = `${config.base_url}quickBookLogs/addQuickBookLogs`;
   const options = {
     url: url,
     method: 'POST',
