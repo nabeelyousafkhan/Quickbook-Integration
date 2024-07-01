@@ -118,9 +118,9 @@ router.post('/', function(req, res) {
         let accessToken = "";
         let loginId = "";
         let refreshToken = "";
-
+        console.log(req.body.eventNotifications)
         if (processedRealmIDs.has(realmID)) {
-          
+            console.log('has readmI: ' + realmID)
           return;
         }
 
@@ -146,7 +146,7 @@ router.post('/', function(req, res) {
                   'loginId' : loginId
               };
   
-              //console.log(entityNotification);  
+              console.log('TopProz keys get | ' + entityNotification);  
               if (entityNotification.name === 'Customer') {              
                   processCustomer(entityNotification, realmID);
               }
