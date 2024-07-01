@@ -15,11 +15,11 @@ router.get('/', function(req, res) {
 })
 
 router.post('/', async function(req, res) {
-    await top_proz_api.LogsWrite("Webhook","Webhook Call Successful","1");
+    //await top_proz_api.LogsWrite("Webhook","Webhook Call Successful","1");
     var webhookPayload = JSON.stringify(req.body);
     //console.log(req.body);
     console.log('The paylopad is :' + JSON.stringify(req.body));
-    await top_proz_api.LogsWrite("Webhook",'The paylopad is : ' + JSON.stringify(req.body),"200");
+    //await top_proz_api.LogsWrite("Webhook",'The paylopad is : ' + JSON.stringify(req.body),"200");
     var signature = req.get('intuit-signature');
     var isTokenRefreshed = false;
     var fields = ['realmId', 'name', 'id', 'operation', 'lastUpdated'];
@@ -27,13 +27,11 @@ router.post('/', async function(req, res) {
   
     // if signature is empty return 401
     if (!signature) {
-        top_proz_api.addQuickBookLogs("Webhook",'FORBIDDEN Signature is empty',"401");
         return res.status(401).send('FORBIDDEN Signature is empty');
     }
   
     // if payload is empty, don't do anything
     if (!webhookPayload) {
-        top_proz_api.addQuickBookLogs("64775f67053e90d344453a74",'success but QB response body is empty',"200");
         return res.status(200).send('success');
     }
   
@@ -41,7 +39,7 @@ router.post('/', async function(req, res) {
      * Validates the payload with the intuit-signature hash
      */
     var hash = crypto.createHmac('sha256', config.webhooksVerifier).update(webhookPayload).digest('base64');
-    await top_proz_api.LogsWrite("Webhook","hash: " + hash + " | signature: " + signature,"0");
+    //await top_proz_api.LogsWrite("Webhook","hash: " + hash + " | signature: " + signature,"0");
     
     if (signature === hash) {      
         console.log("The Webhook notification payload is :" + webhookPayload);
@@ -58,6 +56,7 @@ router.post('/', async function(req, res) {
             loginId: notification.loginId
         };
          quickbookAPIObj.getQBCustomer(req, notification, realmID, async (err, Result) => {
+            console.log("webhook error geting customer: " + err)
               if (err) {
                   if (err.statusCode === 401 && isTokenRefreshed == false) {
                       let response = {statusCode : 401};  
