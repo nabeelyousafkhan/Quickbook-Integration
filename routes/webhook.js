@@ -40,7 +40,7 @@ router.post('/', async function(req, res) {
      */
     var hash = crypto.createHmac('sha256', config.webhooksVerifier).update(webhookPayload).digest('base64');
     //await top_proz_api.LogsWrite("Webhook","hash: " + hash + " | signature: " + signature,"0");
-    
+      console.log("Webhook","hash: " + hash + " | signature: " + signature)
     if (signature === hash) {      
         console.log("The Webhook notification payload is :" + webhookPayload);
         await top_proz_api.LogsWrite("Webhook","The Webhook notification payload is :" + webhookPayload,"200");
