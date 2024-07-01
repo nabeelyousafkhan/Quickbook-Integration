@@ -750,11 +750,12 @@ function getTopProzNewTokenForWebhook(callback) {
 
 function getQuickBookKeysByCompanyID(CompanyID, callback) {
   // Make API request using topproz_token_id from session
+  console.log('call get keys function')
   fs.readFile('data.json', 'utf8')
   .then(data => {    
     const parsedObject = JSON.parse(data);
     myTopProzeToken = parsedObject.topproz_token_id;
-    console.log(myTopProzeToken)
+    
     request({
       url: `${config.base_url}accountsetting/getQuickBookKeysByQbId/${CompanyID}`,
       method: 'GET',
@@ -834,7 +835,10 @@ function getQuickBookKeysByCompanyID(CompanyID, callback) {
       }
     });
 
-  })
+  }).catch(authError => {
+    console.log("Reading data file error: ", authError);
+      
+  });
 
 }
 
