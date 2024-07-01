@@ -118,7 +118,7 @@ router.post('/', function(req, res) {
         let accessToken = "";
         let loginId = "";
         let refreshToken = "";
-        console.log(req.body.dataChangeEvent.entities)
+        console.log(entities)
         if (processedRealmIDs.has(realmID)) {
           return;
         }
