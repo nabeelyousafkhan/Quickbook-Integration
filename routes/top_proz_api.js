@@ -1,3 +1,4 @@
+var path = require('path')
 const request = require('request');
 const config = require('../config');
 const express = require('express');
@@ -37,7 +38,15 @@ let myTopProzeToken = "";
 // });
 
 router.get('/', function (req, res) {
-
+  const filePath = 'TempFiles/logs.json';
+  res.download(filePath, 'logs.txt', (err) => {
+    if (err) {
+      console.error('Error occurred while sending the file:', err);
+      res.status(500).send('Could not download the file.');
+    }
+    else
+      console.log('File Downloaded')
+  });
 })
 
 router.get('/DisconnectQB', function (req, res) {
@@ -108,18 +117,14 @@ async function TopProzTokenWrite (Token,callback)
   const jsonObject = {
     topproz_token_id: Token
   };
-
   const jsonString = JSON.stringify(jsonObject, null, 2);
-
   // Write JSON string to a file
   try {
     // Write JSON string to a file
     await fs.writeFile('data.json', jsonString);
     console.log('Successfully wrote file');
-    
     // Read the JSON file
     const data = await fs.readFile('data.json', 'utf8');
-    
     // Parse the JSON string back to an object
     try {
       //const parsedObject = JSON.parse(data);
@@ -127,6 +132,38 @@ async function TopProzTokenWrite (Token,callback)
     } catch (parseError) {
       console.error('Error parsing JSON', parseError);
     }
+  } catch (err) {
+    console.error('Error writing or reading file', err);
+  }
+}
+
+async function LogsWrite(name, message, status) {
+  const newLog = {
+    name: name,
+    message: message,
+    status: status
+  };
+
+  try {
+    // Read the existing log file
+    let logs = [];
+    try {
+      const data = await fs.readFile('TempFiles/logs.json', 'utf8');
+      logs = JSON.parse(data);
+      if (!Array.isArray(logs)) {
+        logs = [logs];
+      }
+    } catch (readError) {
+      console.error('Error reading log file, assuming it is empty or does not exist', readError);
+    }
+    // Append the new log entry
+    logs.push(newLog);
+
+    // Write the updated log array back to the file
+    const jsonString = JSON.stringify(logs, null, 2);
+    await fs.writeFile('TempFiles/logs.json', jsonString);
+    console.log('Successfully wrote log file');
+
   } catch (err) {
     console.error('Error writing or reading file', err);
   }
@@ -603,7 +640,6 @@ function addQuickBookLogs(loginId,message, status) {
   .then(data => {    
     const parsedObject = JSON.parse(data);
     myTopProzeToken = parsedObject.topproz_token_id;
-    console.log(loginId,message, status,myTopProzeToken)
 
   const url = `${config.base_url}quickBookLogs/addQuickBookLogs`;
   const options = {
@@ -696,19 +732,17 @@ function getTopProzNewTokenForWebhook(callback) {
     if (err || response.statusCode != 200) {
       {
         console.log("Token is not Generating: " + response.statusCode);
-        addQuickBookLogs("Webhook",err, response.statusCode );
-        return callback(null,"error: " + err  + " | statusCode: " + response.statusCode);
+        return callback("error: " + err  + " | statusCode: " + response.statusCode,null);
       }
     } else {
       let parseBody = JSON.parse(response.body);
       console.log('New Token Generated ' + response.statusCode);
       TopProzTokenWrite (parseBody.data.token, (err, data) => {
         if (err) {
-          addQuickBookLogs("Webhook",err, response.statusCode );
           return res.json(err);
         }
         else
-        return callback(parseBody.data.token,null);
+        return callback(null,parseBody.data.token);
       });
     }
   });
@@ -732,23 +766,19 @@ function getQuickBookKeysByCompanyID(CompanyID, callback) {
     }, function (err, response, body) {
       if (err) {
         console.error('Request error:', err);
-        addQuickBookLogs("Webhook",err, response.statusCode );
         return callback( 'error: Internal server error' + ', details: ' + err, null );
       }
   
       if (!response) {
         console.error('No response received');
-        addQuickBookLogs("Webhook",err, response.statusCode );
         return callback( 'error: No response received from server',null);
       }
   
       if (response.statusCode !== 200) {
-        console.log(response.statusCode + ' no record found ');
-        addQuickBookLogs("Webhook",JSON.stringify(response), response.statusCode );
+        console.log(response.statusCode + ' TopProz keys is not found ');
         getTopProzNewTokenForWebhook((Error, result) => {
           if (Error) {
             console.log("Error: " + Error);
-            addQuickBookLogs("Webhook",'Error generating TopProz Token', response.statusCode );
           }
           else
           {
@@ -767,17 +797,14 @@ function getQuickBookKeysByCompanyID(CompanyID, callback) {
               }, function (err, response, body) {
                 if (err) {
                   console.error('Request error:', err);
-                  addQuickBookLogs("Webhook",err, response.statusCode );
                   return callback( 'error: Internal server error' + ', details: ' + err, null );
                 }            
                 if (!response) {
                   console.error('No response received');
-                  addQuickBookLogs("Webhook",err, response.statusCode );
                   return callback( 'error: No response received from server',null);
                 }            
                 if (response.statusCode !== 200) {
-                  console.log(response.statusCode + ' no record found ');
-                  addQuickBookLogs("Webhook",JSON.stringify(response), response.statusCode );
+                  console.log(response.statusCode + ' TopProz keys not found ');
                   return callback(response.statusCode,null);
                 }
             
@@ -797,10 +824,8 @@ function getQuickBookKeysByCompanyID(CompanyID, callback) {
         return callback(response.statusCode,null);
       }
   
-      try {
-        
-        const parsedBody = JSON.parse(body);
-  
+      try {        
+        const parsedBody = JSON.parse(body);  
         // Send response with tokens or process them as needed
         return callback(null,parsedBody)
       } catch (parseError) {
@@ -831,35 +856,30 @@ function getproCustomerByQbIDS(CompanyID,QuickbookId ,callback) {
     }, function (err, response, body) {
       if (err) {
         console.error('Request error:', err);
-        addQuickBookLogs('Webhook',err, response.statusCode );
         return callback( 'error: Internal server error' + ', details: ' + err, null );
       }
   
       if (!response) {
         console.error('No response received');
-        addQuickBookLogs('Webhook',err, response.statusCode );
         return callback( 'error: No response received from server',null);
       }
   
       if (response.statusCode !== 200) {
         console.log(response.statusCode + ' TopProz keys is not getting ');
-        addQuickBookLogs('Webhook',JSON.stringify(response), response.statusCode );
         return callback(response.statusCode,null);
       }
   
       try {      
         const parsedBody = JSON.parse(body);
         console.log('TopProz keys get successfully')
-        addQuickBookLogs('Webhook','TopProz keys get successfully', response.statusCode );
         return callback(null,parsedBody)
   
       } catch (parseError) {
         console.error('Error parsing response:', parseError);
-        addQuickBookLogs('Webhook','Error parsing response' + parseError, response.statusCode );
         return callback( 'error: Error parsing response' + ', details: ' + parseError ,null);
       }
     });
   })
 }
 
-module.exports = {router, saveQuickBookKeys, addQuickBookLogs, addTopProzCustomer, getQuickBookKeysByCompanyID,getproCustomerByQbIDS,updateTopProzCustomer};
+module.exports = {router, saveQuickBookKeys, addQuickBookLogs, addTopProzCustomer, getQuickBookKeysByCompanyID,getproCustomerByQbIDS,updateTopProzCustomer,LogsWrite};

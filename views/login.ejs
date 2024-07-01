@@ -32,12 +32,19 @@
     <div style="text-align: center;">
         <input placeholder="Enter Login ID" type="text" id="txtLoginID"><br/>
         <div id="error-message" style="color: red; display: none;">Login ID cannot be empty</div><br/>
-        <button class="btn" id="btnProceed" onclick="myapilCal()">Proceed <i class="fa fa-arrow-right"></i></button> 
+        <button class="btn" id="btnProceed" onclick="myapilCal()">Proceed <i class="fa fa-arrow-right"></i></button> <br/>
+        <button class="btn" id="btnProceed" onclick="downloadLogs()">Download Logs <i class="fa fa-arrow-right"></i></button> 
         <br/><br/><code id="result"></code>  
         <div class="spinner" id="loadingSpinner"></div> 
     </div>
     <script>
-        
+    
+    function downloadLogs() {
+        $.get(`/top_proz_api`, function(data) {
+        window.location.href = '/top_proz_api';
+      })
+    }
+
     function myapilCal() {
     //  const socket = new WebSocket('ws://localhost:8080');
     //  socket.addEventListener('open', (event) => {
