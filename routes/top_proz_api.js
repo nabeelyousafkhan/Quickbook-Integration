@@ -148,7 +148,7 @@ async function LogsWrite(name, message, status) {
     // Read the existing log file
     let logs = [];
     try {
-      const data = await fs.readFile('TempFiles/logs.json', 'utf8');
+      const data = await fs.readFile('public/logs.json', 'utf8');
       logs = JSON.parse(data);
       if (!Array.isArray(logs)) {
         logs = [logs];
@@ -161,7 +161,7 @@ async function LogsWrite(name, message, status) {
 
     // Write the updated log array back to the file
     const jsonString = JSON.stringify(logs, null, 2);
-    await fs.writeFile('TempFiles/logs.json', jsonString);
+    await fs.writeFile('public/logs.json', jsonString);
     console.log('Successfully wrote log file');
 
   } catch (err) {
